@@ -1,6 +1,6 @@
 # Arsenicum
 
-TODO: Write a gem description
+Asyncronous processing engine that can use any queue storage including Amazon SQS and so on.
 
 ## Installation
 
@@ -18,7 +18,13 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+You can boot arsenicum.
+
+	$ bundle exec arsenicum
+
+If you use arsenicum with rails, you should boot arsenicum_rails as below:
+
+	$ bundle exec arsenicum_rails
 
 ## Contributing
 
