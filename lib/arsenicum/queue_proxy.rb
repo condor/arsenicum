@@ -56,7 +56,7 @@ module Arsenicum
         return queue
       end
       klass_signature = target.class.name
-      if queue = class_queue_tables[class_signature]
+      if queue = class_queue_tables[klass_signature]
         return queue
       end
 
