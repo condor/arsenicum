@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.version       = Arsenicum::VERSION
   spec.authors       = ["condor"]
   spec.email         = ["condor1226@gmail.com"]
-  spec.description   = %q{TODO: Write a gem description}
-  spec.summary       = %q{TODO: Write a gem summary}
+  spec.description   = %q{Arsenicum: multi-backend asyncronous processor.}
+  spec.summary       = %q{Arsenicum: multi-backend asyncronous processor.}
   spec.homepage      = ""
   spec.license       = "MIT"
 
