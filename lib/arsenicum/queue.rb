@@ -2,10 +2,16 @@ require 'json'
 
 module Arsenicum
   class Queue
-    attr_reader :name
+    DEFAULT_CONCURRENCY = 5
 
-    def initialize(arguments = {})
-      @name = arguments[:name]
+    attr_reader :name, :concurrency, :queue_methods, :queue_classes
+
+    def initialize(config = {})
+      @name = config.delete :name
+      @concurrency = config.delete(:concurrency) || DEFAULT_CONCURRENCY
+      @queue_methods = config.delete(:methods)
+      @queue_classes = config.delete(:classes)
+      configure(config)
     end
 
     def put(hash)
