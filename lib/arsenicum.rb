@@ -7,4 +7,5 @@ module Arsenicum
   autoload :WatchDog,       'arsenicum/watchdog'
   autoload :QueueProxy,     'arsenicum/queue_proxy'
   autoload :Syntax,         'arsenicum/syntax'
+  autoload :Sqs,            'arsenicum/sqs'
 end
