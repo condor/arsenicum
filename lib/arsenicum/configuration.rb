@@ -16,7 +16,7 @@ module Arsenicum
         h[queue_name] = queue_setting
         h
       end
-      @engine_configuration = settings[queue_type.to_s]
+      @engine_configuration = settings[queue_type.to_sym]
     end
 
     def queue_class
