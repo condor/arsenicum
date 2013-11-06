@@ -42,7 +42,7 @@ module Arsenicum
     private
     def option_parser
       OptionParser.new.
-        register("-c", "--config-file=YAML", -> v {YAML.load(File.read(v, "r:UTF-8"))}).
+        register("-c", "--config-file=YAML", -> v {YAML.load(File.read(v, encoding: "UTF-8"))}).
         register("-t", "--default-concurrency=VALUE", -> v {{default_concurrency: v.to_i}}).
         register("-q", "--queue-type=QUEUE_TYPE", -> v{{queue_type: v.to_s}}).
         register("--queue-engine-config=CONFIGKEY_VALUE", -> v, config {
