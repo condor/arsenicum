@@ -12,7 +12,7 @@ module Arsenicum
 
     def self.start(settings = {})
       config = Arsenicum::Configuration.new({queues: DEFAULT_QUEUES}.merge(settings || {}))
-      queue_class = configuration.queue_class
+      queue_class = config.queue_class
       @watchdogs = config.queue_configurations.map do |queue_name, queue_config|
         queue = queue_class.new(queue_config)
         Arsenicum::WatchDog.new(queue)

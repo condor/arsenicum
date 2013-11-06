@@ -9,4 +9,5 @@ module Arsenicum
   autoload :Syntax,         'arsenicum/syntax'
   autoload :Sqs,            'arsenicum/sqs'
   autoload :CLI,            'arsenicum/cli'
+  autoload :Server,         'arsenicum/server'
 end
