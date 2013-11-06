@@ -8,4 +8,5 @@ module Arsenicum
   autoload :QueueProxy,     'arsenicum/queue_proxy'
   autoload :Syntax,         'arsenicum/syntax'
   autoload :Sqs,            'arsenicum/sqs'
+  autoload :CLI,            'arsenicum/cli'
 end
