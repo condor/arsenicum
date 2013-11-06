@@ -3,6 +3,8 @@ require 'yaml'
 
 module Arsenicum
   class CLI
+    autoload :Rails, 'arsenicum/cli/rails'
+
     attr_reader :configuration
 
     def initialize(argv)
