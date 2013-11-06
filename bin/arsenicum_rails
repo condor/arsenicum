@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+require 'arsenicum'
+
+Arsenicum::CLI::Rails.new(ARGV).boot
