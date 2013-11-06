@@ -17,7 +17,11 @@ module Arsenicum
       @mutex = Mutex.new
     end
 
+    def boot
+    end
+
     def monitor
+
       while message = queue.poll
         while(!process_available?)
           sleep 1
