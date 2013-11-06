@@ -12,4 +12,5 @@ module Arsenicum
   autoload :Sqs,            'arsenicum/sqs'
   autoload :CLI,            'arsenicum/cli'
   autoload :Server,         'arsenicum/server'
+  autoload :Actor,          'arsenicum/actor'
 end
