@@ -2,7 +2,7 @@ module Arsenicum
   module Server
     DEFAULT_QUEUES = {
       default: {
-        concurrency: 1,
+        concurrency: 2,
       },
     }.freeze
 

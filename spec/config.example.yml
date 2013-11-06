@@ -10,7 +10,7 @@ queues:
     classes:
       - 'ClassInvocation1'
   sample02:
-    concurrency: 1
+    concurrency: 2
     methods:
       - 'SampleA#hoge2'
       - 'SampleB.hoge1'
