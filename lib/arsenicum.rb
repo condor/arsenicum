@@ -1,3 +1,5 @@
+require 'celluloid'
+
 module Arsenicum
   autoload :Version,        'arsenicum/version'
   autoload :Queue,          'arsenicum/queue'
