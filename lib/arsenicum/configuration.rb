@@ -7,7 +7,7 @@ module Arsenicum
       raise MisconfigurationError, "queue_type is required" unless settings[:queue_type]
 
       @queue_type = settings[:queue_type].to_s
-
+      @engine_configuration = settings[queue_type.to_sym]
       @queue_namespace = queue_type.gsub(/_([a-z])/){|_|$1.upcase}.gsub(/^([a-z])/){|_|$1.upcase}.to_sym
 
       queue_settings = settings.delete(:queues)
@@ -16,7 +16,6 @@ module Arsenicum
         h[queue_name] = queue_setting
         h
       end
-      @engine_configuration = settings[queue_type.to_sym]
     end
 
     def queue_class
