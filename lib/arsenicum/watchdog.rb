@@ -1,14 +1,15 @@
 module Arsenicum
   class WatchDog
+    include Celluloid
+
     attr_reader :queue, :pool
 
     def initialize(queue)
       @queue = queue
+      @pool = Arsenicum::Actor.pool size: queue.concurrency, args: queue
     end
 
     def boot
-      @pool = Arsenicum::Actor.pool size: queue.concurrency, args: queue
-
       loop do
         message = queue.poll
         next unless message
