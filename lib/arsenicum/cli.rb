@@ -25,7 +25,11 @@ module Arsenicum
         block = args.pop
         block = block.to_proc unless block.is_a? Proc
 
-        @parser.on(*args) {|v|@values.merge! block.call(v)}
+        if block.arity == 2
+          @parser.on(*args) {|v|block.call(v, @values)}
+        else
+          @parser.on(*args) {|v|@values.merge! block.call(v)}
+        end
         self
       end
 
@@ -39,7 +43,11 @@ module Arsenicum
     def option_parser
       OptionParser.new.
         register("-c", "--config-file=YAML", -> v {YAML.load(File.read(v, "r:UTF-8"))}).
-        register("-t", "--default-concurrency=VALUE", -> v {{default_concurrency: v.to_i}})
+        register("-t", "--default-concurrency=VALUE", -> v {{default_concurrency: v.to_i}}).
+        register("-q", "--queue-type=QUEUE_TYPE", -> v{{queue_type: v.to_s}}).
+        register("--queue-engine-config=CONFIGKEY_VALUE", -> v, config {
+          config[:engine_config] ||= {};(key, value) = v.split(':');config[:engine_config][key.to_sym] = value.to_s
+        })
     end
 
   end
