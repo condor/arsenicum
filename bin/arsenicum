@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+
+require 'arsenicum'
+require 'optparse'
+require 'yaml'
+
+config = {}
+opt = OptionParser.new
+
+opt.on('-c', '--config-file=CONFIG_FILE'){|v|config.merge! YAML.load(File.read(v))}
+# TODO implement other options
+
+Arsenicum::Server.start config
