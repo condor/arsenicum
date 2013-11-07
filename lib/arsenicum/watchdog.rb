@@ -29,14 +29,15 @@ module Arsenicum
 
     private
     def create_worker
-      Worker.new
+      Worker.new(@task_queue, @queue, @mutex)
     end
 
+    #:nodoc:
     class Worker < ::Thread
-      def initialize(task_queue, queue)
+      def initialize(task_queue, queue, mutex)
         super do
           loop do
-            task = task_queue.shift
+            @mutex.synchronize { task = task_queue.shift }
             unless task
               sleep 0.1
               next
