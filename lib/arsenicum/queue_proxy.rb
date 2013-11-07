@@ -6,11 +6,6 @@ module Arsenicum
       @instance ||= new(Arsenicum::Configuration.instance)
     end
 
-    class <<self
-      attr_accessor :default
-      attr_reader :instance
-    end
-
     attr_reader :configuration
     attr_reader :queues
     attr_reader :default_queue
@@ -25,7 +20,7 @@ module Arsenicum
 
       @queues = configuration.queue_configurations.inject({}) do |h, kv|
         (queue_name, queue_configuration) = kv
-        queue = queue_class.new(queue_configuration.merge(configuration.engine_coniguration))
+        queue = queue_class.new(queue_name, queue_configuration.merge(configuration.engine_configuration))
         Array(queue.queue_methods).tap(&compact!).each do |m|
           method_queue_tables[m] ||= queue
         end
