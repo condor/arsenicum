@@ -27,10 +27,11 @@ module Arsenicum
         Array(queue.queue_classes).tap(&:compact!).each do |m|
           class_queue_tables[m] ||= queue
         end
+        h[queue_name] = queue
 
         h
       end
-      @default_queue = queues['default']
+      @default_queue = queues[:default]
     end
 
     def async(target, method, *arguments)
