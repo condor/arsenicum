@@ -13,8 +13,7 @@ module Arsenicum
     def self.start(settings = {})
       config = Arsenicum::Configuration.new({queues: DEFAULT_QUEUES}.merge(settings || {}))
       queue_class = config.queue_class
-      @watchdogs = config.queue_configurations.map do |queue_name, queue_config|
-        queue = queue_class.new(config.engine_configuration.merge(queue_config))
+      @watchdogs = config.create_queues.map do |queue|
         Arsenicum::WatchDog.new(queue)
       end
       watchdogs.each{|dog|dog.async.boot}

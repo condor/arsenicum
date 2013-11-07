@@ -6,8 +6,8 @@ module Arsenicum
 
     attr_reader :name, :concurrency, :queue_methods, :queue_classes
 
-    def initialize(config = {})
-      @name = config.delete(:name).to_s
+    def initialize(name, config = {})
+      @name = name
       @concurrency = (config.delete(:concurrency) || DEFAULT_CONCURRENCY).to_i
       @queue_methods = config.delete(:methods)
       @queue_classes = config.delete(:classes)

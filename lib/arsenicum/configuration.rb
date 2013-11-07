@@ -18,6 +18,13 @@ module Arsenicum
       end
     end
 
+    def create_queues
+      queue_configurations.map do |queue_name_config|
+        (queue_name, queue_config) = queue_name_config
+        queue_class.new(queue_name, engine_configuration.merge(queue_config))
+      end
+    end
+
     def queue_class
       Arsenicum.const_get(queue_namespace).const_get(:Queue)
     end
