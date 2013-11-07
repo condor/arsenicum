@@ -12,7 +12,7 @@ module Arsenicum
     end
 
     def boot
-      Arsenicum::Server.start(configuration)
+      Arsenicum::Server.start(Arsenicum::Configuration.new(configuration))
     end
 
     class OptionParser
