@@ -16,6 +16,7 @@ module Arsenicum
           message = queue.poll
           next unless message
 
+          # FIXME: overtime queue stocking.
           @mutex.synchronize do
             @task_queue.push Task.parse(message[:message_body], message[:message_id])
           end
@@ -23,8 +24,17 @@ module Arsenicum
       end
     end
 
-    def join
-      @main_thread.join
+    def shutdown
+      @workers.each do |worker|
+        begin
+          worker.terminate
+        rescue Exception
+        end
+      end
+      begin
+        @main_thread.terminate
+      rescue Exception
+      end
     end
 
     private

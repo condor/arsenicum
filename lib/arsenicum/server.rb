@@ -9,11 +9,17 @@ module Arsenicum
       @watchdogs = config.create_queues.map do |queue|
         Arsenicum::WatchDog.new(queue)
       end
-      watchdogs.each(&:boot).each(&:join)
+
+      waiter_thread = Thread.new { loop { sleep 10 } }
+      begin
+        waiter_thread.join
+      rescue Interrupt
+        shutdown
+      end
     end
 
     def self.shutdown
-      @watchdogs.each(&:terminate)
+      @watchdogs.each(&:shutdown)
     end
   end
 end
