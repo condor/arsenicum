@@ -57,7 +57,7 @@ module Arsenicum
     module WithActiveRecord
       def self.included(base)
         base.module_eval do
-          alias_method :prepare_serialization_specific_original :prepare_serialization_specific
+          alias_method :prepare_serialization_specific_original, :prepare_serialization_specific
 
           def prepare_serialization_specific(value)
             prepare_serialization_specific_original(value) || prepare_serialization_active_record(value)
