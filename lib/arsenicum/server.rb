@@ -19,16 +19,17 @@ module Arsenicum
 
       queue_class = config.queue_class
       @watchdogs = config.create_queues.map do |queue|
-        Arsenicum::WatchDog.new(queue)
+        Arsenicum::WatchDog.new(queue, config.logger)
       end
+      @watchdogs.each(&:boot)
 
       loop { sleep 10 }
     end
 
     def shutdown
       @watchdogs.each(&:shutdown)
-      Thread.current.terminate
       File.delete config.pidfile if config.pidfile
+      Thread.current.terminate
     end
 
     private
