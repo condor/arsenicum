@@ -1,11 +1,5 @@
 module Arsenicum
   module Server
-    DEFAULT_QUEUES = {
-      default: {
-        concurrency: 2,
-      },
-    }.freeze
-
     class << self
       attr_reader :watchdogs
     end
