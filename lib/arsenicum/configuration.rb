@@ -1,6 +1,6 @@
 module Arsenicum
   class Configuration
-    attr_accessor :queue_namespace, :queue_type, :queue_configurations, :engine_configuration
+    attr_accessor :queue_namespace, :queue_type, :queue_configurations, :engine_configuration, :pidfile, :background
 
     DEFAULT_QUEUES = {
       default: {
@@ -19,7 +19,9 @@ module Arsenicum
       settings = {queues: DEFAULT_QUEUES}.merge(normalize_hash_key(settings))
       raise MisconfigurationError, "queue_type is required" unless settings[:queue_type]
 
-      @queue_type = settings[:queue_type].to_s
+      @pidfile = settings.delete(:pidfile)
+      @background = (settings.delete(:background).to_s.downcase == "true")
+      @queue_type = settings.delete(:queue_type).to_s
       @engine_configuration = settings[queue_type.to_sym]
       @queue_namespace = queue_type.gsub(/_([a-z])/){|_|$1.upcase}.gsub(/^([a-z])/){|_|$1.upcase}.to_sym
 

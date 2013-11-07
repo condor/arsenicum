@@ -44,10 +44,13 @@ module Arsenicum
 
     #:nodoc:
     class Worker < ::Thread
+      attr_reader :running
+
       def initialize(task_queue, queue, mutex)
         super do
           loop do
-            @mutex.synchronize { task = task_queue.shift }
+            mutex.synchronize { task = task_queue.shift }
+
             unless task
               sleep 0.1
               next
