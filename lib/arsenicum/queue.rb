@@ -15,7 +15,7 @@ module Arsenicum
     end
 
     def put(hash)
-      json = JSON(hash.merge(timestamp: Time.to_f.to_s.tap{|t|t.sub! '.', ''}))
+      json = JSON(hash.merge(timestamp: (Time.now.to_f * 1000000).to_i.to_s))
       put_to_queue(json)
     end
 
