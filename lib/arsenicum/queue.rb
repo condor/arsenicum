@@ -4,18 +4,20 @@ module Arsenicum
   class Queue
     DEFAULT_CONCURRENCY = 5
 
-    attr_reader :name, :concurrency, :queue_methods, :queue_classes
+    attr_reader :name, :concurrency, :queue_methods, :queue_classes, :logger
 
-    def initialize(name, config = {})
+    def initialize(name, config = {}, logger = nil)
       @name = name
       @concurrency = (config.delete(:concurrency) || DEFAULT_CONCURRENCY).to_i
       @queue_methods = config.delete(:methods)
       @queue_classes = config.delete(:classes)
+      @logger = logger || Logger.new(STDOUT)
       configure(config)
     end
 
     def put(hash)
       json = JSON(hash.merge(timestamp: (Time.now.to_f * 1000000).to_i.to_s))
+      logger.debug { "Queue Put[#{name}] values #{json}" }
       put_to_queue(json)
     end
 
