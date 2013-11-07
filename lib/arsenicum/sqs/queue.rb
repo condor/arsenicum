@@ -23,12 +23,12 @@ module Arsenicum::Sqs
     end
 
     def put_to_queue(json, named: name)
-      sqs_queue = sqs.queues.named(named)
+      sqs_queue = sqs.queues.named(named.to_s)
       sqs_queue.send_message(json)
     end
 
     def poll
-      sqs.queues.named(name).poll(wait_time_out: wait_timeout) do |message|
+      sqs.queues.named(name.to_s).poll(wait_time_out: wait_timeout) do |message|
         {
           message_body: message.body,
           message_id: message.handle,
