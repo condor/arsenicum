@@ -1,6 +1,9 @@
+require 'logger'
+
 module Arsenicum
   class Configuration
-    attr_accessor :queue_namespace, :queue_type, :queue_configurations, :engine_configuration, :pidfile, :background
+    attr_accessor :queue_namespace, :queue_type, :queue_configurations, :engine_configuration, :pidfile, :background, :log_level
+    attr_reader :logger
 
     DEFAULT_QUEUES = {
       default: {
@@ -16,6 +19,9 @@ module Arsenicum
     end
 
     def initialize(settings)
+      @log_level = Logger::INFO
+      @logger = Logger.new(STDOUT)
+
       settings = {queues: DEFAULT_QUEUES}.merge(normalize_hash_key(settings))
       raise MisconfigurationError, "queue_type is required" unless settings[:queue_type]
 
@@ -30,6 +36,21 @@ module Arsenicum
         (queue_name, queue_setting) = kv
         h[queue_name] = queue_setting
         h
+      end
+
+      if log_level = settings.delete(:log_level)
+        @log_level = Logger.const_get(log_level.to_sym)
+      end
+
+      if log_file = settings.delete(:log_file)
+        self.logger = Logger.new(log_file)
+      end
+    end
+
+    def logger=(new_logger)
+      @logger = new_logger
+      if @logger
+        @logger.level = Logger
       end
     end
 
