@@ -1,9 +1,5 @@
-require 'celluloid'
-
 module Arsenicum
   class Actor
-    include Celluloid
-
     attr_reader :queue
 
     def initialize(queue)

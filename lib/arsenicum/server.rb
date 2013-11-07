@@ -9,9 +9,7 @@ module Arsenicum
       @watchdogs = config.create_queues.map do |queue|
         Arsenicum::WatchDog.new(queue)
       end
-      watchdogs.each{|dog|dog.async.boot}
-
-      watchdogs.each{|dog|dog.future.value}
+      watchdogs.each(&:boot).each(&:join)
     end
 
     def self.shutdown
