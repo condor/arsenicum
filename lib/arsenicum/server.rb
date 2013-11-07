@@ -8,7 +8,16 @@ module Arsenicum
     end
 
     def self.start(config = Arsenicum::Configuration.instance)
-      new(config).start
+      if config.pidfile
+        File.open(config.pidfile){|f|f.puts $$}
+      end
+
+      if config.background
+        fork do
+          new(config).start
+        end
+        exit
+      end
     end
 
     def start
@@ -26,6 +35,7 @@ module Arsenicum
     def shutdown
       @watchdogs.each(&:shutdown)
       Thread.current.terminate
+      File.delete config.pidfile if config.pidfile
     end
 
     private
