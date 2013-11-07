@@ -10,6 +10,8 @@ module Arsenicum
         Arsenicum::WatchDog.new(queue)
       end
       watchdogs.each{|dog|dog.async.boot}
+
+      watchdogs.each{|dog|dog.future.value}
     end
 
     def self.shutdown
