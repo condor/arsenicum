@@ -7,7 +7,7 @@ module Arsenicum
     DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S %Z %z".freeze
 
     def prepare_serialization(value)
-      hash_value = hasize_specific(value) || prepare_serialization_default(value)
+      hash_value = prepare_serialization_specific(value) || prepare_serialization_default(value)
     end
 
     def prepare_serialization_specific(value)
