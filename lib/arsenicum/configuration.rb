@@ -50,7 +50,7 @@ module Arsenicum
       end
 
       if log_level = settings.delete(:log_level)
-        @log_level = Logger.const_get(log_level.to_sym)
+        @log_level = Logger.const_get(log_level.upcase.to_sym)
       end
 
       if log_file = settings.delete(:log_file)
@@ -61,14 +61,14 @@ module Arsenicum
     def logger=(new_logger)
       @logger = new_logger
       if @logger
-        @logger.level = Logger
+        @logger.level = log_level
       end
     end
 
     def create_queues
       queue_configurations.map do |queue_name_config|
         (queue_name, queue_config) = queue_name_config
-        queue_class.new(queue_name, engine_configuration.merge(queue_config))
+        queue_class.new(queue_name, engine_configuration.merge(queue_config), logger)
       end
     end
 
