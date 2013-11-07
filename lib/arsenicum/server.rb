@@ -8,16 +8,9 @@ module Arsenicum
     end
 
     def self.start(config = Arsenicum::Configuration.instance)
-      if config.pidfile
-        File.open(config.pidfile){|f|f.puts $$}
-      end
-
-      if config.background
-        fork do
-          new(config).start
-        end
-        exit
-      end
+      Process.daemon(true, true) if config.background
+      File.open(config.pidfile, 'w'){|f|f.puts $$} if config.pidfile
+      new(config).start
     end
 
     def start
