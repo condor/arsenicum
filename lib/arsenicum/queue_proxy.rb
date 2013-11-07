@@ -41,7 +41,7 @@ module Arsenicum
         arguments: arguments.map{|arg|prepare_serialization(arg)},
       }
       specify_queue(target, method).
-        tap{|q|logger.debug { "Queue #{queue.name}: Param #{values.inspect}" }}.
+        tap{|q|logger.debug { "Queue #{q.name}: Param #{values.inspect}" }}.
         put(values)
     end
 
