@@ -1,9 +1,10 @@
 module Arsenicum
   class WatchDog
-    attr_reader :queue
+    attr_reader :queue, :logger
 
-    def initialize(queue)
+    def initialize(queue, logger)
       @queue = queue
+      @logger = logger
 
       @task_queue = Array.new
       @mutex = Mutex.new
@@ -14,6 +15,7 @@ module Arsenicum
       @main_thread = Thread.new do
         loop do
           message = queue.poll
+          logger.debug { "received message #{message.inspect}" }
           next unless message
 
           # FIXME: overtime queue stocking.
