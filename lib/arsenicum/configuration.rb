@@ -2,6 +2,13 @@ module Arsenicum
   class Configuration
     attr_accessor :queue_namespace, :queue_type, :queue_configurations, :engine_configuration
 
+    class << self
+      def configure(configuration)
+        @instance = new(configuration)
+      end
+      attr_reader :instance
+    end
+
     def initialize(settings)
       settings = normalize_hash_key(settings)
       raise MisconfigurationError, "queue_type is required" unless settings[:queue_type]
