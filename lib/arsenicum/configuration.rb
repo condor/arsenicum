@@ -2,6 +2,12 @@ module Arsenicum
   class Configuration
     attr_accessor :queue_namespace, :queue_type, :queue_configurations, :engine_configuration
 
+    DEFAULT_QUEUES = {
+      default: {
+        concurrency: 2,
+      },
+    }.freeze
+
     class << self
       def configure(configuration)
         @instance = new(configuration)
@@ -10,7 +16,7 @@ module Arsenicum
     end
 
     def initialize(settings)
-      settings = normalize_hash_key(settings)
+      settings = {queues: DEFAULT_QUEUES}.merge(normalize_hash_key(settings))
       raise MisconfigurationError, "queue_type is required" unless settings[:queue_type]
 
       @queue_type = settings[:queue_type].to_s

@@ -10,8 +10,7 @@ module Arsenicum
       attr_reader :watchdogs
     end
 
-    def self.start(settings = {})
-      config = Arsenicum::Configuration.new({queues: DEFAULT_QUEUES}.merge(settings || {}))
+    def self.start(config = Arsenicum::Configuration.instance)
       queue_class = config.queue_class
       @watchdogs = config.create_queues.map do |queue|
         Arsenicum::WatchDog.new(queue)
