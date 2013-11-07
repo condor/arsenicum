@@ -21,10 +21,10 @@ module Arsenicum
       @queues = configuration.queue_configurations.inject({}) do |h, kv|
         (queue_name, queue_configuration) = kv
         queue = queue_class.new(queue_name, queue_configuration.merge(configuration.engine_configuration))
-        Array(queue.queue_methods).tap(&compact!).each do |m|
+        Array(queue.queue_methods).tap(&:compact!).each do |m|
           method_queue_tables[m] ||= queue
         end
-        Array(queue.queue_classes).tap(&compact!).each do |m|
+        Array(queue.queue_classes).tap(&:compact!).each do |m|
           class_queue_tables[m] ||= queue
         end
 
