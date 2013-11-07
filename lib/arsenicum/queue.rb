@@ -44,6 +44,12 @@ module Arsenicum
     #         If the process complete successfully,
     #         this argument will be set true. Otherwise,
     #         this will be false.
+    #   4. create_queue_backend - optional
+    #     Register the queue itself on its backend.
+    #     This will be invoked from the rake task
+    #     'arsenicum:create_queues'.
+    #     Note: this method should be implemented idempotently.
+    #
     #####################################################
   end
 end
