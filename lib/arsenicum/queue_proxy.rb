@@ -2,8 +2,13 @@ module Arsenicum
   class QueueProxy
     include Serialization
 
+    def self.configure(configuration)
+      @instance = new(configuration)
+    end
+
     class <<self
       attr_accessor :default
+      attr_reader :instance
     end
 
     attr_reader :configuration
