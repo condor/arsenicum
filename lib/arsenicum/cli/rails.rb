@@ -9,7 +9,10 @@ module Arsenicum
 
     def option_parser
       OptionParser.new.register("-e", "--environment=ENVIRONMENT", -> v { {rails_env: v} }).
-        register("-d", "--dir=DIRECTORY", -> v { {dir: v} })
+        register("-d", "--dir=DIRECTORY", -> v { {dir: v} }).
+        register("-p", "--pidfile=PID_FILE", -> v { { pidfile: v } }).
+        register("-l", "--log-file=LOG_FILE", -> v { { log_file: v } })
+        register("-D", "--daemon", -> v { { background: true } })
     end
   end
 end
