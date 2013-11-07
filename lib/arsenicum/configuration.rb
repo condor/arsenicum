@@ -16,14 +16,25 @@ module Arsenicum
         @instance = new(configuration)
       end
       attr_reader :instance
+
+      def reconfigure(settings)
+        instance.reconfigure additional_settings: settings
+      end
     end
 
     def initialize(settings)
       @log_level = Logger::INFO
       @logger = Logger.new(STDOUT)
 
-      settings = {queues: DEFAULT_QUEUES}.merge(normalize_hash_key(settings))
-      raise MisconfigurationError, "queue_type is required" unless settings[:queue_type]
+      @original_settings = {queues: DEFAULT_QUEUES}.merge(normalize_hash_key(settings))
+      raise MisconfigurationError, "queue_type is required" unless @original_settings[:queue_type]
+
+      reconfigure
+    end
+
+    def reconfigure(additional_settings: nil)
+      @original_settings.merge! additional_settings if additional_settings
+      settings = @original_settings.dup
 
       @pidfile = settings.delete(:pidfile)
       @background = (settings.delete(:background).to_s.downcase == "true")
