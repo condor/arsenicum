@@ -36,7 +36,7 @@ module Arsenicum::Sqs
       end
     end
 
-    def update_message_status(json, message_id, successful)
+    def update_message_status(message_id, successful, json)
       put_to_queue(json, named: failure_queue_name) unless successful
 
       sqs_queue = sqs.named(name)

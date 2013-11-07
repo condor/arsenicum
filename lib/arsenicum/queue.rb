@@ -34,7 +34,7 @@ module Arsenicum
     #       :message_id: the identifier of this message.
     #         This is usually used to update the status of
     #         message on the queue backend.
-    #   3. update_message_status(message_id, successful):
+    #   3. update_message_status(message_id, successful, json):
     #     Update the status of the message. Arguments are
     #     as following:
     #       message_id: The identifier of the message to
@@ -44,6 +44,7 @@ module Arsenicum
     #         If the process complete successfully,
     #         this argument will be set true. Otherwise,
     #         this will be false.
+    #       json: the message received.
     #   4. create_queue_backend - optional
     #     Register the queue itself on its backend.
     #     This will be invoked from the rake task
