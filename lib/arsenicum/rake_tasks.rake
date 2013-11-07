@@ -5,7 +5,7 @@ namespace :arsenicum do
   desc 'Create queues defined in the configuration file. Specify configuration with CONFIG=config_file_path.'
   task :create_queues do
     config_file = ENV['CONFIG'] || 'config/arsenicum.yml'
-    yaml = YAML.load(File.read(config_file, encoding: 'UTF-8'))
+    yaml = YAML.load(Erubis::Eruby.new(File.read(config_file, encoding: 'UTF-8')).result)
     config_values =
       if ENV['CONFIG_KEY']
         ENV['CONFIG_KEY'].split('.').inject(yaml) do |values, key|
