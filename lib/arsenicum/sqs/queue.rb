@@ -29,11 +29,10 @@ module Arsenicum::Sqs
 
     def poll
       sqs.queues.named(name.to_s).poll(wait_time_out: wait_timeout) do |message|
-        logger.debug { "RAW_MESSAGE #{message.inspect}" }
         {
           message_body: message.body,
           message_id: message.handle,
-        }
+        }.tap{|m|logger.debug { "MESSAGE RECEIVED: #{m.inspect}" } }
       end
     end
 
