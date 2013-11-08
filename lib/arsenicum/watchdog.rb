@@ -15,7 +15,6 @@ module Arsenicum
       @main_thread = Thread.new do
         loop do
           message = queue.poll
-          logger.debug { "received message #{message.inspect}" }
           next unless message
 
           # FIXME: overtime queue stocking.
