@@ -6,7 +6,7 @@ module Arsenicum::Syntax
       end
 
       def method_missing(method_id, *arguments)
-        Arsenicum::QueueProxy.instance.async(@wrapped_object, method_id, *arguments)
+        ::Arsenicum::QueueProxy.instance.async(@wrapped_object, method_id, *arguments)
       end
     end
 
