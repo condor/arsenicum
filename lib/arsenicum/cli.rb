@@ -3,6 +3,8 @@ require 'yaml'
 
 module Arsenicum
   class CLI
+    include Arsenicum::Util
+
     autoload :Rails, 'arsenicum/cli/rails'
 
     attr_reader :configuration
@@ -28,7 +30,7 @@ module Arsenicum
         if block.arity == 2
           @parser.on(*args) {|v|block.call(v, @values)}
         else
-          @parser.on(*args) {|v|@values.merge! block.call(v)}
+          @parser.on(*args) {|v|@values.merge! normalize_hash(block.call(v))}
         end
         self
       end
@@ -42,13 +44,7 @@ module Arsenicum
     private
     def option_parser
       OptionParser.new.
-        register("-c", "--config-file=YAML", -> v {YAML.load(File.read(v, encoding: "UTF-8"))}).
-        register("-t", "--default-concurrency=VALUE", -> v {{default_concurrency: v.to_i}}).
-        register("-q", "--queue-type=QUEUE_TYPE", -> v{{queue_type: v.to_s}}).
-        register("--queue-engine-config=CONFIGKEY_VALUE", -> v, config {
-          config[:engine_config] ||= {};(key, value) = v.split(':');config[:engine_config][key.to_sym] = value.to_s
-        })
+        register("-c", "--config-file=YAML", -> v {YAML.load(File.read(v, encoding: "UTF-8"))})
     end
-
   end
 end
