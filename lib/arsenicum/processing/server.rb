@@ -21,7 +21,9 @@ module Arsenicum
         @queue_pickers = config.queue_configurations.map do |kv|
           (queue_name, queue_config) = kv
           queue = queue_config.queue_class.new(
-              queue_name, config.logger, config: queue_config,
+              queue_name,
+              logger: config.logger,
+              config: queue_config,
               engine_config: config.engine_configuration,
           )
 

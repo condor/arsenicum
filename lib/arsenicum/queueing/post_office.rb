@@ -15,7 +15,8 @@ module Arsenicum
         @queues = configuration.queue_configurations.inject({}) do |h, kv|
           (queue_name, queue_configuration) = kv
           queue = configuration.queue_class.new(
-              queue_name, configuration.logger,
+              queue_name,
+              logger: configuration.logger,
               config: queue_configuration,
               engine_config: configuration.engine_configuration
           )

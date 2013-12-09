@@ -6,11 +6,11 @@ module Arsenicum
 
     attr_reader   :name, :concurrency, :logger
 
-    def initialize(name, logger, config: nil, engine_config: nil)
+    def initialize(name, logger: nil, config: nil, engine_config: nil)
       @name = name
       @logger = logger
       @concurrency = config.concurrency
-      @logger = config.logger || Logger.new(STDOUT)
+      @logger = logger || Logger.new(STDOUT)
       configure(config, engine_config)
     end
 
