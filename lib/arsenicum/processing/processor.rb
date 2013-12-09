@@ -83,7 +83,7 @@ module Arsenicum
       end
 
       class Work
-        include Forwardable
+        extend Forwardable
 
         attr_reader   :queue, :request
         attr_reader   :worker
