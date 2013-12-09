@@ -33,9 +33,20 @@ module Arsenicum
 
       def deliver_to(target, method, *arguments)
         values = {
-            target: prepare_serialization(target),
+            target: {
+                target: serialize_object(target),
+                timestamp: (Time.now.to_f * 1000000).to_i,
+                method_name: method_name,
+                arguments: arguments.nil? ? nil : arguments.map { |arg| serialize_object(arg) },
+            },
             method_name: method,
-            arguments: arguments.map{|arg|prepare_serialization(arg)},
+            arguments: arguments.map{|arg|{
+                target: serialize_object(target),
+                timestamp: (Time.now.to_f * 1000000).to_i,
+                method_name: method_name,
+                arguments: arguments.nil? ? nil : arguments.map { |arg| serialize_object(arg) },
+            }
+            },
         }
         specify_queue(target, method).
             tap{|q|logger.debug { "Queue #{q.name}: Param #{values.inspect}" }}.
