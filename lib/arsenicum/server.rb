@@ -1,5 +1,8 @@
 module Arsenicum
   class Server
+    autoload :WatchDog, 'arsenicum/server/watchdog'
+    autoload :Actor, 'arsenicum/server/actor'
+
     attr_reader :watchdogs
     attr_reader :config
 
