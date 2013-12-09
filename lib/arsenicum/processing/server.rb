@@ -36,7 +36,7 @@ module Arsenicum
 
       def shutdown
         @queue_pickers.each(&:shutdown)
-        File.delete config.pidfile if config.pidfile
+        File.delete config.server.pidfile if config.server.pidfile && File.exist?(config.server.pidfile)
         Thread.current.terminate
       end
 
