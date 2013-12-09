@@ -31,7 +31,8 @@ module Arsenicum
 
     include Arsenicum::Util
 
-    attr_accessor :queue_configurations, :engine_configuration, :queue_class, :logger
+    attr_accessor :queue_configurations, :engine_configuration, :queue_class, :logger,
+                  :post_office
 
     class << self
       attr_reader :instance
@@ -74,6 +75,8 @@ module Arsenicum
       end
 
       @queue_configurations.merge!(default: QueueConfiguration::Default) unless @queue_configurations.include? :default
+
+      @post_office = PostOffice.new self
     end
 
     class QueueConfiguration
