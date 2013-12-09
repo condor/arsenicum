@@ -1,7 +1,7 @@
 require 'json'
 
 module Arsenicum
-  class Task
+  class Request
     include Serialization
 
     attr_reader :target, :method, :arguments, :timestamp, :message_id, :exception
