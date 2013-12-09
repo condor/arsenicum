@@ -7,11 +7,11 @@ module Arsenicum
       DATE_FORMAT = "%Y-%m-%d".freeze
       DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S %Z %z".freeze
 
-      def serialize(value)
-        serialize_specific(value) || serialize_default(value)
+      def serialize_object(value)
+        serialize_object_specific(value) || serialize_object_default(value)
       end
 
-      def serialize_specific(value)
+      def serialize_object_specific(value)
         case value
           when Integer, Float, String, TrueClass, FalseClass, NilClass
             {
@@ -36,29 +36,29 @@ module Arsenicum
           when Array
             {
                 type: :array,
-                values: value.map{|v|serialize(v)},
+                values: value.map{|v|serialize_object(v)},
             }
           when Hash
             {
                 type: :hash,
-                values: value.inject({}){|h, kv|(k,v)=kv;h[k.to_s]=serialize(v);h},
+                values: value.inject({}){|h, kv|(k,v)=kv;h[k.to_s]=serialize_object(v);h},
             }
         end
       end
 
-      def serialize_default(value)
+      def serialize_object_default(value)
         {
             type: 'marshal',
             value: Marshal.dump(value).unpack('H*').first,
         }
       end
 
-      def restore(value)
+      def restore_object(value)
         return eval value['value'] if value['type'] == 'raw'
-        restore_specific(value) || restore_default(value)
+        restore_object_specific(value) || restore_object_default(value)
       end
 
-      def restore_specific(value)
+      def restore_object_specific(value)
         case value['type']
           when 'date'
             Date.strptime(value['value'], DATE_FORMAT)
@@ -68,34 +68,34 @@ module Arsenicum
             Module.const_get value['value'].to_sym
           when 'array'
             value['values'].map do |value|
-              restore(value)
+              restore_object(value)
             end
           when 'hash'
             value['values'].inject({}) do |h, key_value|
               (key, value) = key_value
-              h[key.to_sym] = restore(key_value)
+              h[key.to_sym] = restore_object(key_value)
               h
             end
         end
       end
 
-      def restore_default(value)
-        Marshal.restore [value['value']].pack('H*')
+      def restore_object_default(value)
+        Marshal.restore_object [value['value']].pack('H*')
       end
 
       module WithActiveRecord
         def self.included(base)
           base.module_eval do
-            def serialize_specific_with_active_record(value)
-              serialize_specific_without_active_record(value) || serialize_active_record(value)
+            def serialize_object_specific_with_active_record(value)
+              serialize_object_specific_without_active_record(value) || serialize_object_active_record(value)
             end
 
-            def restore_specific_with_active_record(value)
-              restore_specific_without_active_record(value) || restore_active_record(value)
+            def restore_object_specific_with_active_record(value)
+              restore_object_specific_without_active_record(value) || restore_object_active_record(value)
             end
 
             private
-            def serialize_active_record(value)
+            def serialize_object_active_record(value)
               return {
                   type: :active_record,
                   class: value.class.name,
@@ -103,15 +103,15 @@ module Arsenicum
               } if value.is_a? ActiveRecord::Base
             end
 
-            def restore_active_record(value)
+            def restore_object_active_record(value)
               if value['class'] == 'active_record'
                 klass = const_get value['class'].to_sym
                 klass.find value['id']
               end
             end
 
-            alias_method_chain :serialize_specific, :active_record
-            alias_method_chain :restore_specific, :active_record
+            alias_method_chain :serialize_object_specific, :active_record
+            alias_method_chain :restore_object_specific, :active_record
 
           end
         end
