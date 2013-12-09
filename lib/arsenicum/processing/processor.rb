@@ -1,5 +1,6 @@
 require 'timeout'
 require 'forwardable'
+require 'weakref'
 
 module Arsenicum
   module Processing
@@ -9,7 +10,7 @@ module Arsenicum
       def initialize(queue)
         @mutex = Mutex.new
         @queue = queue
-        @max_size = options[:workers].to_i
+        @max_size = queue.concurrency
         @current_size = 0
 
         @workers = @max_size.times.map do |_|
