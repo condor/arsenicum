@@ -6,7 +6,7 @@ module Arsenicum
     class Processor
       attr_reader :head, :tail, :max_size , :current_size
 
-      def initialize(queue, options = {})
+      def initialize(queue)
         @mutex = Mutex.new
         @queue = queue
         @max_size = options[:workers].to_i
