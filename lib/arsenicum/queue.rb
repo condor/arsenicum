@@ -31,23 +31,23 @@ module Arsenicum
     #     message information. This method is expected to
     #     return the message Hash. Its keys and values
     #     are expected as below:
-    #       :message_body: the raw string that was pushed
+    #       :body: the raw string that was pushed
     #         via the :put_to_queue method.
-    #       :message_id: the identifier of this message.
+    #       :id: the identifier of this message.
     #         This is usually used to update the status of
     #         message on the queue backend.
-    #   3. update_message_status(message_id, successful, json):
-    #     Update the status of the message. Arguments are
-    #     as following:
-    #       message_id: The identifier of the message to
-    #         be updated. This value will be set as the
+    #   3. handle_success(message_id):
+    #     The post-success process. Arguments are as below:
+    #       message_id: The identifier of the message processed.
+    #   4. handle_failure(message_id, exception, raw_message):
+    #     The process if the task finishes in failure.
+    #     Arguments are:
+    #       message_id: The identifier of the message that
+    #         ends in failure. This value should be the
     #         :message_id of the return value of :poll.
-    #       successful: The result of the process done.
-    #         If the process complete successfully,
-    #         this argument will be set true. Otherwise,
-    #         this will be false.
-    #       json: the message received.
-    #   4. create_queue_backend - optional
+    #       exception: The cause of the failure.
+    #       raw_message: the message received.
+    #   5. create_queue_backend - optional
     #     Register the queue itself on its backend.
     #     This will be invoked from the rake task
     #     'arsenicum:create_queues'.
