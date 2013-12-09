@@ -9,7 +9,7 @@ module Arsenicum
       attr_reader :method_queue_tables
       attr_reader :class_queue_tables
 
-      def initialize(configuration = Arsenicum::Configuration.instance)
+      def initialize(configuration)
         @configuration = configuration
         queue_class = configuration.queue_class
         @method_queue_tables = {}
@@ -31,7 +31,7 @@ module Arsenicum
         @default_queue = queues[:default]
       end
 
-      def async(target, method, *arguments)
+      def deliver_to(target, method, *arguments)
         values = {
             target: prepare_serialization(target),
             method_name: method,
