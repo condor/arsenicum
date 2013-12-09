@@ -32,7 +32,7 @@ module Arsenicum
     include Arsenicum::Util
 
     attr_accessor :queue_configurations, :engine_configuration, :queue_class, :logger,
-                  :post_office
+                  :post_office, :server
 
     class << self
       attr_reader :instance
@@ -48,6 +48,8 @@ module Arsenicum
 
       normalize_hash(values).each do |key, value|
         case key
+          when :server
+            @server = ServerConfiguration.new(value)
           when :log_file
             @logger = Logger.new(value)
             @logger.formatter = @log_formatter if @log_formatter
@@ -93,6 +95,12 @@ module Arsenicum
       end
 
       Default = new(:default)
+    end
+
+    class ServerConfiguration
+      include ConfiguredByHash
+
+      attr_config :background, :pidfile, :working_directory, :environment
     end
 
   end
