@@ -5,9 +5,9 @@ module Arsenicum
     class QueuePicker
       attr_reader :queue, :logger, :processor
 
-      def initialize(queue, logger)
+      def initialize(queue)
         @queue = queue
-        @logger = logger
+        @logger = queue.logger
         @processor = Arsenicum::Processing::Processor.new queue
       end
 

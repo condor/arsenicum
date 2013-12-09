@@ -1,7 +1,7 @@
 module Arsenicum
   module Processing
     class Server
-      attr_reader :watchdogs
+      attr_reader :queue_pickers
       attr_reader :config
 
       def initialize(config)
@@ -18,16 +18,22 @@ module Arsenicum
         puts "Booting Arsenicum Server..."
         Signal.trap(:INT, &method(:trap_interruption))
 
-        @watchdogs = config.create_queues.map do |queue|
-          Arsenicum::WatchDog.new(queue, config.logger)
+        @queue_pickers = config.queue_configurations.map do |kv|
+          (queue_name, queue_config) = kv
+          queue = queue_config.queue_class.new(
+              queue_name, config.logger, config: queue_config,
+              engine_config: config.engine_configuration,
+          )
+
+          QueuePicker.new(queue)
         end
-        @watchdogs.each(&:boot)
+        @queue_pickers.each(&:boot)
 
         loop { sleep 10 }
       end
 
       def shutdown
-        @watchdogs.each(&:shutdown)
+        @queue_pickers.each(&:shutdown)
         File.delete config.pidfile if config.pidfile
         Thread.current.terminate
       end
