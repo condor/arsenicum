@@ -82,7 +82,7 @@ module Arsenicum
 
       DEFAULT_CONCURRENCY = 2
 
-      def initialize(queue_name, queue_config)
+      def initialize(queue_name, queue_config = {})
         @queue_name = queue_name
         configure(queue_config)
         @concurrency ||= DEFAULT_CONCURRENCY
