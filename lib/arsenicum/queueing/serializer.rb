@@ -3,7 +3,7 @@ require 'time'
 
 module Arsenicum
   module Queueing
-    module Serialization
+    module Serializer
       DATE_FORMAT = "%Y-%m-%d".freeze
       DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S %Z %z".freeze
 

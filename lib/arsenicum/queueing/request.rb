@@ -3,7 +3,7 @@ require 'json'
 module Arsenicum
   module Queueing
     class Request
-      include Serialization
+      include Serializer
 
       attr_reader :target, :method, :arguments, :timestamp, :message_id, :exception
 
