@@ -7,11 +7,11 @@ module Arsenicum
       DATE_FORMAT = "%Y-%m-%d".freeze
       DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S %Z %z".freeze
 
-      def prepare_serialization(value)
-        hash_value = prepare_serialization_specific(value) || prepare_serialization_default(value)
+      def serialize(value)
+        serialize_specific(value) || serialize_default(value)
       end
 
-      def prepare_serialization_specific(value)
+      def serialize_specific(value)
         case value
           when Integer, Float, String, TrueClass, FalseClass, NilClass
             {
@@ -46,53 +46,26 @@ module Arsenicum
         end
       end
 
-      def prepare_serialization_default(value)
+      def serialize_default(value)
         {
             type: 'marshal',
             value: Marshal.dump(value).unpack('H*').first,
         }
       end
 
-      module_function :prepare_serialization_specific, :prepare_serialization_default, :prepare_serialization
-
-      module WithActiveRecord
-        def self.included(base)
-          base.module_eval do
-            alias_method :prepare_serialization_specific_original, :prepare_serialization_specific
-
-            def prepare_serialization_specific(value)
-              prepare_serialization_specific_original(value) || prepare_serialization_active_record(value)
-            end
-
-            private
-            def prepare_serialization_active_record(value)
-              return {
-                  type: :active_record,
-                  class: value.class.name,
-                  id: value.id,
-              } if value.is_a? ActiveRecord::Base
-            end
-
-            module_function :prepare_serialization_specific_original, :prepare_serialization_active_record
-          end
-        end
+      def restore(value)
+        return eval value['value'] if value['type'] == 'raw'
+        restore_specific(value) || restore_default(value)
       end
 
-      include(WithActiveRecord) if defined? ::ActiveRecord::Base
-
-      def restore(value)
+      def restore_specific(value)
         case value['type']
-          when 'raw'
-            eval value['value']
           when 'date'
             Date.strptime(value['value'], DATE_FORMAT)
           when 'time'
             Time.strptime(value['value'], DATE_TIME_FORMAT)
           when 'class'
             Module.const_get value['value'].to_sym
-          when 'active_record'
-            klass = const_get value['class'].to_sym
-            klass.find value['id']
           when 'array'
             value['values'].map do |value|
               restore(value)
@@ -103,10 +76,47 @@ module Arsenicum
               h[key.to_sym] = restore(key_value)
               h
             end
-          else
-            Marshal.restore [value['value']].pack('H*')
         end
       end
+
+      def restore_default(value)
+        Marshal.restore [value['value']].pack('H*')
+      end
+
+      module WithActiveRecord
+        def self.included(base)
+          base.module_eval do
+            def serialize_specific_with_active_record(value)
+              serialize_specific_without_active_record(value) || serialize_active_record(value)
+            end
+
+            def restore_specific_with_active_record(value)
+              restore_specific_without_active_record(value) || restore_active_record(value)
+            end
+
+            private
+            def serialize_active_record(value)
+              return {
+                  type: :active_record,
+                  class: value.class.name,
+                  id: value.id,
+              } if value.is_a? ActiveRecord::Base
+            end
+
+            def restore_active_record(value)
+              if value['class'] == 'active_record'
+                klass = const_get value['class'].to_sym
+                klass.find value['id']
+              end
+            end
+
+            alias_method_chain :serialize_specific, :active_record
+            alias_method_chain :restore_specific, :active_record
+
+          end
+        end
+      end
+
     end
   end
 end
