@@ -33,7 +33,7 @@ module Arsenicum
         register("-e", "--environment=ENV", -> v {{rails_env: v}}).
         register("-d", "--rails-root=DIR", -> v {{dir: v}}).
         register("-c", "--config-file=FILE",
-                 -> v {v.end_with?(".yml") ? YAML.load(File.read v, encoding: 'r:UTF-8') : load(v)})
+                 -> v {v.end_with?(".yml") ? YAML.load(File.read v, encoding: 'UTF-8') : load(v)})
     end
   end
 end

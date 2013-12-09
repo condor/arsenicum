@@ -18,6 +18,8 @@ module Arsenicum
     end
 
     class OptionParser
+      include Arsenicum::Util
+
       def initialize
         @values = {}
         @parser = ::OptionParser.new
