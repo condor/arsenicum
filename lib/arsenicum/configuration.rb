@@ -2,7 +2,8 @@ require 'logger'
 
 module Arsenicum
   class Configuration
-    attr_accessor :queue_namespace, :queue_type, :queue_configurations, :engine_configuration, :pidfile, :background, :log_level
+    attr_accessor :queue_namespace, :queue_type, :queue_configurations, :engine_configuration,
+                  :pidfile, :background, :log_level, :post_office
     attr_reader :logger
 
     DEFAULT_QUEUES = {
@@ -56,6 +57,8 @@ module Arsenicum
       if log_file = settings.delete(:log_file)
         self.logger = Logger.new(log_file)
       end
+
+      @post_office = Arsenicum::Queueing::PostOffice.new(self)
     end
 
     def logger=(new_logger)
