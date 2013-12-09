@@ -20,7 +20,6 @@ module Arsenicum
       puts "Booting Arsenicum Server..."
       Signal.trap(:INT, &method(:trap_interruption))
 
-      queue_class = config.queue_class
       @watchdogs = config.create_queues.map do |queue|
         Arsenicum::WatchDog.new(queue, config.logger)
       end

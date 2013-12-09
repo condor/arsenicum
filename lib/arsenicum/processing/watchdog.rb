@@ -1,5 +1,5 @@
 module Arsenicum
-  class WatchDog
+  class Server::WatchDog
     attr_reader :queue, :logger
 
     def initialize(queue, logger)
@@ -17,7 +17,7 @@ module Arsenicum
           message = queue.poll
           next unless message
 
-          # FIXME: overtime queue stocking.
+          #FIXME: overtime queue stocking.
           @mutex.synchronize do
             @task_queue.push Task.parse(message[:message_body], message[:message_id])
           end

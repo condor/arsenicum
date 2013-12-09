@@ -1,5 +1,5 @@
 module Arsenicum
-  class Actor
+  class Server::Actor
     attr_reader :queue
 
     def initialize(queue)
