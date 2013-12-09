@@ -9,14 +9,13 @@ module Arsenicum
       attr_reader :class_queue_tables
 
       def initialize(configuration)
-        queue_class = configuration.queue_class
         @method_queue_tables = {}
         @class_queue_tables = {}
 
         @queues = configuration.queue_configurations.inject({}) do |h, kv|
           (queue_name, queue_configuration) = kv
-          queue = queue_class.new(
-              queue_name,
+          queue = configuration.queue_class.new(
+              queue_name, configuration.logger,
               config: queue_configuration,
               engine_config: configuration.engine_configuration
           )
