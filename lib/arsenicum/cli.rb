@@ -14,7 +14,7 @@ module Arsenicum
     end
 
     def boot
-      Arsenicum::Server.start(Arsenicum::Configuration.new(configuration))
+      Arsenicum::Procerssing::Server.start(Arsenicum::Configuration.new(configuration))
     end
 
     class OptionParser
