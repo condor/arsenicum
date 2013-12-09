@@ -14,12 +14,13 @@ module Arsenicum
 
       private
       def configure(hash)
-        @config_keys.each do |key|
+        self.class.config_keys.each do |key|
           instance_variable_set :"@#{key}", hash[key]
         end
       end
 
       module ClassMethods
+        attr_accessor :config_keys
         private
         def attr_config(*attrs)
           @config_keys = Array(attrs)
