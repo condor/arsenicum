@@ -76,6 +76,12 @@ module Arsenicum
         @workers.push(worker)
       end
 
+      def terminate
+        @workers.each do |worker|
+          worker.thread.terminate
+        end
+      end
+
       class Work
         include Forwardable
 
@@ -168,6 +174,10 @@ module Arsenicum
           work.mark_running
           work.worker = self
           @work = work
+        end
+
+        def raise_error(e)
+          thread.raise e
         end
       end
     end
