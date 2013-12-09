@@ -8,6 +8,7 @@ module Arsenicum
       rails_env = configuration.delete(:rails_env) || ENV['RAILS_ENV'] || :development
       rails_env = rails_env.to_sym
       dir = configuration.delete(:dir) || ENV['RAILS_ROOT'] || Dir.pwd
+      dir = File.expand_path dir
       background = configuration.delete(:background)
       pidfile = configuration.delete(:pidfile) || "#{dir}/tmp/pids/arsenicum.pid" if background
 
