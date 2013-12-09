@@ -8,6 +8,10 @@ module Arsenicum
         base.extend ClassMethods
       end
 
+      def initialize(hash)
+        configure(hash)
+      end
+
       private
       def configure(hash)
         @config_keys.each do |key|
