@@ -1,26 +1,40 @@
 module Arsenicum
   class CLI::Rails < CLI
+    include Arsenicum::Util
+
     def boot
-      ENV['RACK_ENV'] = (ENV['RAILS_ENV'] ||= (configuration[:rails_env] || 'development'))
-      rootdir = ENV['RAILS_ROOT'] || configuration[:dir] || Dir.pwd
-      Dir.chdir rootdir
+      configuration = self.configuration
 
-      if configuration[:background] && !configuration[:pidfile]
-        configuration[:pidfile] = "#{rootdir}/tmp/pids/arsenicum.pid"
-      end
+      rails_env = configuration.delete(:rails_env)
+      dir = configuration.delete(:dir)
+      pidfile = configuration.delete(:pidfile)
+      background = configuration.delete(:background)
 
-      load File.join(rootdir, 'config/environment.rb')
-      Arsenicum::Configuration.reconfigure configuration
+      ENV['RACK_ENV'] = (ENV['RAILS_ENV'] ||= (rails_env || :development))
+      dir = ENV['RAILS_ROOT'] || dir || Dir.pwd
+      Dir.chdir dir
+
+      pidfile = "#{dir}/tmp/pids/arsenicum.pid" if background && !pidfile
+
+      config_for_env = configuration[ENV['RAILS_ENV']]
+      config_for_env.merge!(
+          dir: dir,
+          pidfile: pidfile,
+          background: background,
+      )
+
+      load File.join(dir, 'config/environment.rb')
+      Arsenicum::Configuration.configure config_for_env
       Arsenicum::Server.start
     end
 
+    private
     def option_parser
-      OptionParser.new.register("-e", "--environment=ENVIRONMENT", -> v { {rails_env: v} }).
-        register("-d", "--dir=DIRECTORY", -> v { {dir: v} }).
-        register("-p", "--pidfile=PID_FILE", -> v { { pidfile: v } }).
-        register("-l", "--log-file=LOG_FILE", -> v { { log_file: v } }).
-        register("-D", "--daemon", -> v { { background: true } }).
-        register("-L", "--log-level=LOG_LEVEL", -> v { {log_level: v} })
+      OptionParser.new.
+        register("-e", "--environment=ENV", -> v {{rails_env: v}}).
+        register("-d", "--rails-root=DIR", -> v {{dir: v}}).
+        register("-c", "--config-file=FILE",
+                 -> v {v.end_with?(".yml") ? YAML.load(File.read v, encoding: 'r:UTF-8') : load(v)})
     end
   end
 end
