@@ -3,25 +3,28 @@ module Arsenicum
     class PostOffice
       include Serializer
 
-      attr_reader :configuration
       attr_reader :queues
       attr_reader :default_queue
       attr_reader :method_queue_tables
       attr_reader :class_queue_tables
 
       def initialize(configuration)
-        @configuration = configuration
         queue_class = configuration.queue_class
         @method_queue_tables = {}
         @class_queue_tables = {}
 
         @queues = configuration.queue_configurations.inject({}) do |h, kv|
           (queue_name, queue_configuration) = kv
-          queue = queue_class.new(queue_name, queue_configuration.merge(configuration.engine_configuration))
-          Array(queue.queue_methods).tap(&:compact!).each do |m|
+          queue = queue_class.new(
+              queue_name,
+              config: queue_configuration,
+              engine_config: configuration.engine_configuration
+          )
+
+          Array(queue_configuration.methods).tap(&:compact!).each do |m|
             method_queue_tables[m] ||= queue
           end
-          Array(queue.queue_classes).tap(&:compact!).each do |m|
+          Array(queue_configuration.classes).tap(&:compact!).each do |m|
             class_queue_tables[m] ||= queue
           end
           h[queue_name] = queue

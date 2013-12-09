@@ -30,7 +30,7 @@ module Arsenicum
 
     include Arsenicum::Util
 
-    attr_accessor :queue_configurations, :engine_configuration, :queue_class
+    attr_accessor :queue_configurations, :engine_configuration, :queue_class, :logger
 
     class << self
       attr_reader :instance
@@ -42,8 +42,16 @@ module Arsenicum
 
     def initialize(values)
       configs = {}
+      @logger = Logger.new(STDOUT)
+
       normalize_hash(values).each do |key, value|
         case key
+          when :log_file
+            @logger = Logger.new(value)
+            @logger.formatter = @log_formatter if @log_formatter
+          when :log_format
+            @log_formatter = -> severity, datetime, program_name, message { value.freeze }
+            @logger.formatter = @log_formatter
           when :queues
             @queue_configurations = value.inject({}) do |h, kv|
               (queue_name, queue_config) = kv
