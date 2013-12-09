@@ -1,6 +1,6 @@
 module Arsenicum
   class QueueProxy
-    include Serialization
+    include Serializer
 
     def self.instance
       @instance ||= new(Arsenicum::Configuration.instance)
