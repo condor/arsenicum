@@ -5,21 +5,16 @@ module Arsenicum::Sqs
     attr_reader :account
     attr_reader :sqs
     attr_reader :wait_timeout
-    attr_reader :failure_queue_name
-    attr_reader :queue_configuration
 
-    def configure(config, engine_config)
+    def configure(_, engine_config)
       @account = engine_config.account
       @sqs = AWS::SQS.new account
       @wait_timeout =
-        if config.delete(:long_poll)
+        if engine_config.long_poll
           nil
-        elsif timeout = config.delete(:wait_timeout)
+        elsif timeout = engine_config.wait_timeout
           timeout.to_i
         end
-      @failure_queue_name = config.delete :failure_queue_name
-
-      @queue_configuration = config
     end
 
     def put_to_queue(json, named: name)
@@ -54,15 +49,10 @@ module Arsenicum::Sqs
     ].freeze
 
     def create_queue_backend
-      creation_options = queue_configuration.values_at(*CREATION_OPTIONS).
-        each_with_index.inject({}) do |opts, vi|
+      creation_options = engine_configuration.creation_options.dup
 
-        (value, i) = vi
-        opts[CREATION_OPTIONS[i]] = value if value
-        opts
-      end
       CREATION_OPTIONS_IN_JSON.each do |opt|
-        creation_options[opt] = JSON(queue_configuration[opt]) if queue_configuration[opt]
+        creation_options[opt] = JSON(creation_options[opt]) if creation_options[opt]
       end
 
       begin

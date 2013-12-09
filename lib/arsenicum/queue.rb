@@ -4,11 +4,14 @@ module Arsenicum
   class Queue
     DEFAULT_CONCURRENCY = 5
 
-    attr_reader   :name, :concurrency, :logger
+    attr_reader   :name, :concurrency, :logger, :config, :engine_config
 
     def initialize(name, logger: nil, config: nil, engine_config: nil)
       @name = name
       @logger = logger
+      @config = config
+      @engine_config = engine_config
+
       @concurrency = config.concurrency
       @logger = logger || Logger.new(STDOUT)
       configure(config, engine_config)
