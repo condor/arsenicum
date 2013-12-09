@@ -13,6 +13,8 @@ module Arsenicum
 
       Dir.chdir dir
       config_for_env = configuration[rails_env]
+      raise Arsenicum::MisconfigurationError, "config for #{rails_env} is abscent" unless config_for_env
+
       config_for_env.merge!(
           dir: dir,
           pidfile: pidfile,

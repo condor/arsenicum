@@ -92,4 +92,6 @@ module Arsenicum
     end
 
   end
+
+  class MisconfigurationError < StandardError;end
 end

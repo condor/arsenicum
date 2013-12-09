@@ -1,13 +1,14 @@
 module Arsenicum
-  autoload :CLI,            'arsenicum/cli'
-  autoload :Configuration,  'arsenicum/configuration'
-  autoload :Processing,     'arsenicum/processing'
-  autoload :Queue,          'arsenicum/queue'
-  autoload :Queueing,       'arsenicum/queueing'
-  autoload :Sqs,            'arsenicum/sqs'
-  autoload :Syntax,         'arsenicum/syntax'
-  autoload :Util,           'arsenicum/util'
-  autoload :Version,        'arsenicum/version'
+  autoload :CLI,                    'arsenicum/cli'
+  autoload :Configuration,          'arsenicum/configuration'
+  autoload :MisconfigurationError,  'arsenicum/configuration'
+  autoload :Processing,             'arsenicum/processing'
+  autoload :Queue,                  'arsenicum/queue'
+  autoload :Queueing,               'arsenicum/queueing'
+  autoload :Sqs,                    'arsenicum/sqs'
+  autoload :Syntax,                 'arsenicum/syntax'
+  autoload :Util,                   'arsenicum/util'
+  autoload :Version,                'arsenicum/version'
 end
 
 if defined? ::ActiveSupport
