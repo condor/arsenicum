@@ -5,24 +5,21 @@ module Arsenicum
     def boot
       configuration = self.configuration
 
-      rails_env = configuration.delete(:rails_env)
-      dir = configuration.delete(:dir)
-      pidfile = configuration.delete(:pidfile)
+      rails_env = configuration.delete(:rails_env) || ENV['RAILS_ENV'] || :development
+      rails_env = rails_env.to_sym
+      dir = configuration.delete(:dir) || ENV['RAILS_ROOT'] || Dir.pwd
       background = configuration.delete(:background)
+      pidfile = configuration.delete(:pidfile) || "#{dir}/tmp/pids/arsenicum.pid" if background
 
-      ENV['RACK_ENV'] = (ENV['RAILS_ENV'] ||= (rails_env || :development))
-      dir = ENV['RAILS_ROOT'] || dir || Dir.pwd
       Dir.chdir dir
-
-      pidfile = "#{dir}/tmp/pids/arsenicum.pid" if background && !pidfile
-
-      config_for_env = configuration[ENV['RAILS_ENV']]
+      config_for_env = configuration[rails_env]
       config_for_env.merge!(
           dir: dir,
           pidfile: pidfile,
           background: background,
       )
 
+      ENV['RAILS_ENV'] = rails_env.to_s
       load File.join(dir, 'config/environment.rb')
       Arsenicum::Configuration.configure config_for_env
       Arsenicum::Server.start
