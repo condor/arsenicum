@@ -8,8 +8,8 @@ module Arsenicum::Sqs
     attr_reader :failure_queue_name
     attr_reader :queue_configuration
 
-    def configure(config)
-      @account = config.delete :account
+    def configure(config, engine_config)
+      @account = engine_config.account
       @sqs = AWS::SQS.new account
       @wait_timeout =
         if config.delete(:long_poll)
