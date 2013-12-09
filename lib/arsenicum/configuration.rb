@@ -30,6 +30,8 @@ module Arsenicum
 
     include Arsenicum::Util
 
+    attr_accessor :queue_configurations, :engine_configuration, :queue_class
+
     class << self
       attr_reader :instance
 
@@ -52,6 +54,7 @@ module Arsenicum
           when :engine
             @engine = value.to_sym
             @engine_namespace = Arsenicum.const_get(camelcase(@engine))
+            @queue_class = @engine_namespace.const_get(:Queue)
             @engine_configuration_class = @engine_namespace.const_get(:Configuration)
             @engine_configuration = @engine_configuration_class.new(configs[@engine]) if configs[@engine]
           when @engine
@@ -60,6 +63,8 @@ module Arsenicum
             configs[key] = value
         end
       end
+
+      @queue_configurations.merge!(default: QueueConfiguration::Default) unless @queue_configurations.include? :default
     end
 
     class QueueConfiguration
@@ -67,10 +72,15 @@ module Arsenicum
       attr_reader :queue_name
       attr_config :methods, :classes, :concurrency
 
+      DEFAULT_CONCURRENCY = 2
+
       def initialize(queue_name, queue_config)
         @queue_name = queue_name
         configure(queue_config)
+        @concurrency ||= DEFAULT_CONCURRENCY
       end
+
+      Default = new(:default)
     end
 
   end
