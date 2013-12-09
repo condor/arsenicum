@@ -1,6 +1,6 @@
 module Arsenicum
   module Processing
-    class WatchDog
+    class QueuePicker
       attr_reader :queue, :logger
 
       def initialize(queue, logger)
