@@ -1,11 +1,7 @@
 module Arsenicum
   module Queueing
-    class Client
+    class PostOffice
       include Serializer
-
-      def self.instance
-        @instance ||= new(Arsenicum::Configuration.instance)
-      end
 
       attr_reader :configuration
       attr_reader :queues
@@ -13,7 +9,7 @@ module Arsenicum
       attr_reader :method_queue_tables
       attr_reader :class_queue_tables
 
-      def initialize(configuration)
+      def initialize(configuration = Arsenicum::Configuration.instance)
         @configuration = configuration
         queue_class = configuration.queue_class
         @method_queue_tables = {}
@@ -59,7 +55,7 @@ module Arsenicum
           conjunction = '#'
           klass = target.class
         end
-        method_signature = [target.class.name, method].join conjunction
+        method_signature = [klass.name, method].join conjunction
         if queue = method_queue_tables[method_signature]
           return queue
         end
