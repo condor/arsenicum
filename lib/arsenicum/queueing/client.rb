@@ -1,73 +1,75 @@
 module Arsenicum
-  class QueueProxy
-    include Serializer
+  module Queueing
+    class Client
+      include Serializer
 
-    def self.instance
-      @instance ||= new(Arsenicum::Configuration.instance)
-    end
+      def self.instance
+        @instance ||= new(Arsenicum::Configuration.instance)
+      end
 
-    attr_reader :configuration
-    attr_reader :queues
-    attr_reader :default_queue
-    attr_reader :method_queue_tables
-    attr_reader :class_queue_tables
+      attr_reader :configuration
+      attr_reader :queues
+      attr_reader :default_queue
+      attr_reader :method_queue_tables
+      attr_reader :class_queue_tables
 
-    def initialize(configuration)
-      @configuration = configuration
-      queue_class = configuration.queue_class
-      @method_queue_tables = {}
-      @class_queue_tables = {}
+      def initialize(configuration)
+        @configuration = configuration
+        queue_class = configuration.queue_class
+        @method_queue_tables = {}
+        @class_queue_tables = {}
 
-      @queues = configuration.queue_configurations.inject({}) do |h, kv|
-        (queue_name, queue_configuration) = kv
-        queue = queue_class.new(queue_name, queue_configuration.merge(configuration.engine_configuration))
-        Array(queue.queue_methods).tap(&:compact!).each do |m|
-          method_queue_tables[m] ||= queue
+        @queues = configuration.queue_configurations.inject({}) do |h, kv|
+          (queue_name, queue_configuration) = kv
+          queue = queue_class.new(queue_name, queue_configuration.merge(configuration.engine_configuration))
+          Array(queue.queue_methods).tap(&:compact!).each do |m|
+            method_queue_tables[m] ||= queue
+          end
+          Array(queue.queue_classes).tap(&:compact!).each do |m|
+            class_queue_tables[m] ||= queue
+          end
+          h[queue_name] = queue
+
+          h
         end
-        Array(queue.queue_classes).tap(&:compact!).each do |m|
-          class_queue_tables[m] ||= queue
+        @default_queue = queues[:default]
+      end
+
+      def async(target, method, *arguments)
+        values = {
+            target: prepare_serialization(target),
+            method_name: method,
+            arguments: arguments.map{|arg|prepare_serialization(arg)},
+        }
+        specify_queue(target, method).
+            tap{|q|logger.debug { "Queue #{q.name}: Param #{values.inspect}" }}.
+            put(values)
+      end
+
+      def logger
+        configuration.logger
+      end
+
+      private
+      def specify_queue(target, method)
+        if target.is_a?(Module)
+          conjunction = '.'
+          klass = target
+        else
+          conjunction = '#'
+          klass = target.class
         end
-        h[queue_name] = queue
+        method_signature = [target.class.name, method].join conjunction
+        if queue = method_queue_tables[method_signature]
+          return queue
+        end
+        klass_signature = target.class.name
+        if queue = class_queue_tables[klass_signature]
+          return queue
+        end
 
-        h
+        return default_queue
       end
-      @default_queue = queues[:default]
-    end
-
-    def async(target, method, *arguments)
-      values = {
-        target: prepare_serialization(target),
-        method_name: method,
-        arguments: arguments.map{|arg|prepare_serialization(arg)},
-      }
-      specify_queue(target, method).
-        tap{|q|logger.debug { "Queue #{q.name}: Param #{values.inspect}" }}.
-        put(values)
-    end
-
-    def logger
-      configuration.logger
-    end
-
-    private
-    def specify_queue(target, method)
-      if target.is_a?(Module)
-        conjunction = '.'
-        klass = target
-      else
-        conjunction = '#'
-        klass = target.class
-      end
-      method_signature = [target.class.name, method].join conjunction
-      if queue = method_queue_tables[method_signature]
-        return queue
-      end
-      klass_signature = target.class.name
-      if queue = class_queue_tables[klass_signature]
-        return queue
-      end
-
-      return default_queue
     end
   end
 end
