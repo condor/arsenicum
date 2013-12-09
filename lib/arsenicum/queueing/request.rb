@@ -1,6 +1,9 @@
 require 'json'
 
 module Arsenicum
+  module Queueing
+
+  end
   class Request
     include Serialization
 
