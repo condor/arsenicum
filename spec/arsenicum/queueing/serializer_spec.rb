@@ -51,7 +51,19 @@ describe Arsenicum::Queueing::Serializer do
 
     context :time_like do
       shared_examples_for :date_time do
+        let(:target){target_type.now}
+        specify{expect(subject.serialize_object target).to eq({type: 'datetime', value: target.strftime('%Y-%m-%dT%H:%M:%S %Z %z')})}
+        specify{expect(subject.restore_object(subject.serialize_object target).to_i).to eq(target.to_time.to_i)}
+      end
 
+      context :target_is_datetime do
+        let(:target_type){DateTime}
+        it_should_behave_like :date_time
+      end
+
+      context :target_is_time do
+        let(:target_type){Time}
+        it_should_behave_like :date_time
       end
     end
   end
