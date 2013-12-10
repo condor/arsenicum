@@ -15,7 +15,7 @@ module Arsenicum
 
       TYPE_RAW      = 'raw'.freeze
       TYPE_DATE     = 'date'.freeze
-      TYPE_DATETIME = 'time'.freeze
+      TYPE_DATETIME = 'datetime'.freeze
       TYPE_CLASS    = 'class'.freeze
       TYPE_ARRAY    = 'array'.freeze
       TYPE_HASH     = 'hash'.freeze
@@ -28,15 +28,15 @@ module Arsenicum
                 type: TYPE_RAW,
                 value: value.inspect,
             }
-          when Date
-            {
-                type: TYPE_DATE,
-                value: value.strftime(DATE_FORMAT),
-            }
           when DateTime, Time
             {
                 type: TYPE_DATETIME,
                 value: value.strftime(DATE_TIME_FORMAT),
+            }
+          when Date
+            {
+                type: TYPE_DATE,
+                value: value.strftime(DATE_FORMAT),
             }
           when Class
             {
