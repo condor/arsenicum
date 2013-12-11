@@ -20,8 +20,8 @@ describe Arsenicum::Queueing::PostOffice do
 
       before{subject.post request_object}
 
-      specify{expect(result).to include(:message_id)}
-      specify{expect(result[:message_body]).to eq(request_object.serialize)}
+      specify{expect(result).to include(:id)}
+      specify{expect(result[:body]).to eq(request_object.serialize)}
     end
 
     describe 'class method invocation' do
