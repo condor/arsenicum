@@ -14,13 +14,19 @@ module Arsenicum
       def boot
         @main_thread = Thread.new do
           loop do
-            message = queue.poll
-            next unless message
+            processor.synchronize do
+              next wait if processor.full?
+              next wait unless message = queue.poll
 
-            request = Arsenicum::Queueing::Request.restore(message[:body], message[:id])
-            processor.push(request)
+              processor.push(Arsenicum::Queueing::Request.restore(message[:body], message[:id]))
+            end
+
           end
         end
+      end
+
+      def wait
+        sleep 0.1
       end
 
       def shutdown

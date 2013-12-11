@@ -26,22 +26,19 @@ module Arsenicum
       end
 
       def push(request)
-        return if current_size == max_size
-
-        @mutex.synchronize do
-          return if current_size == max_size
-
-          work = Work.new queue, request
-          if tail
-            tail.next = work
-            work.prev = tail
-          else
-            @tail = work
-          end
-
-          @current_size += 1
+        work = Work.new queue, request
+        if tail
+          tail.next = work
+          work.prev = tail
+        else
+          @tail = work
         end
-        true
+
+        @current_size += 1
+      end
+
+      def full?
+        current_size == max_size
       end
 
       def pickup
@@ -81,6 +78,11 @@ module Arsenicum
         @workers.each do |worker|
           worker.thread.terminate
         end
+      end
+
+      def synchronize
+        return unless block_given?
+        @mutex.synchronize{yield}
       end
 
       class Work
