@@ -6,15 +6,12 @@ module Arsenicum::Sqs
     attr_reader :sqs
     attr_reader :wait_timeout
 
+    DEFAULT_WAIT_TIMEOUT = 1
+
     def configure(_, engine_config)
       @account = engine_config.account
       @sqs = AWS::SQS.new account
-      @wait_timeout =
-        if engine_config.long_poll
-          nil
-        elsif timeout = engine_config.wait_timeout
-          timeout.to_i
-        end
+      @wait_timeout = engine_config.wait_timeout ? timeout.to_i : DEFAULT_WAIT_TIMEOUT
     end
 
     def put_to_queue(json, named: name)
@@ -25,8 +22,8 @@ module Arsenicum::Sqs
     def poll
       sqs.queues.named(name.to_s).poll(wait_time_out: wait_timeout) do |message|
         {
-          message_body: message.body,
-          message_id: message.handle,
+          body: message.body,
+          id: message.handle,
         }.tap{|m|logger.debug { "MESSAGE RECEIVED: #{m.inspect}" } }
       end
     end

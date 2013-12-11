@@ -14,8 +14,8 @@ module Arsenicum
 
       def poll
         {
-            message_body: queues.shift,
-            message_id: Time.now.to_f.to_s,
+            body: queues.shift,
+            id: Time.now.to_f.to_s,
         }
       end
 
