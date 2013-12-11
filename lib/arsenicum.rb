@@ -11,6 +11,12 @@ module Arsenicum
   autoload :Syntax,                 'arsenicum/syntax'
   autoload :Util,                   'arsenicum/util'
   autoload :Version,                'arsenicum/version'
+
+  class << self
+    def configure(arg = nil, &block)
+      Arsenicum::Configuration.configure arg, &block
+    end
+  end
 end
 
 if defined? ::ActiveSupport

@@ -37,8 +37,34 @@ module Arsenicum
     class << self
       attr_reader :instance
 
-      def configure(values)
-        @instance = new(values)
+      def configure(arg)
+        config_values =
+            if block_given?
+              value_holder = ConfigurationValueHolder.new
+              yield(value_holder)
+              value_holder.to_h
+            else
+              case arg
+                when String
+                  if arg.end_with? '.rb'
+                    load arg
+                    nil # because configuration is expected to be finished in the loaded script.
+                  else
+                    YAML.load(File.read arg, encoding: 'UTF-8')
+                  end
+                when IO
+                  YAML.load arg.read
+                when Hash
+                  arg
+                else
+                  raise ArgumentError
+              end
+            end
+        # The case where the config values is nil occurs only given arg is '*.rb',
+        #   which means that configuration by Ruby script is expected to be completed in the script.
+        #   That script will call configure with block.
+        @instance = new(config_values) if config_values
+        @instance
       end
     end
 
