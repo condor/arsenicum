@@ -1,0 +1,24 @@
+development:
+  engine: mock
+  log_file: '/dev/null'
+  queues:
+    default:
+      concurrency: 10
+    sample01:
+      concurrency: 3
+      methods:
+        - 'SampleA#hoge1'
+        - 'SampleB.hoge2'
+    sample02:
+      concurrency: 2
+      methods:
+        - 'SampleA#hoge2'
+        - 'SampleB#hoge2'
+    sample_a:
+      concurrency: 3
+      classes:
+        - SampleA
+    sample_b:
+      concurrency: 2
+      classes:
+        - SampleB
