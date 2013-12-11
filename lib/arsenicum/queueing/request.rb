@@ -44,7 +44,7 @@ module Arsenicum
       end
 
       def execute!
-        target.__send__ method, *arguments
+        target.__send__ method_name, *arguments
       end
     end
   end
