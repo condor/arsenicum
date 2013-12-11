@@ -17,8 +17,7 @@ module Arsenicum
       configure(config, engine_config)
     end
 
-    def put(hash)
-      json = JSON(hash.merge(timestamp: (Time.now.to_f * 1000000).to_i.to_s))
+    def put(json)
       logger.debug { "Queue Put[#{name}] values #{json}" }
       put_to_queue(json)
     end

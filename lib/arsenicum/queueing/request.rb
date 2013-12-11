@@ -5,7 +5,7 @@ module Arsenicum
     class Request
       include Serializer
 
-      attr_reader :raw_message, :target, :method, :arguments, :timestamp, :message_id, :exception
+      attr_reader :raw_message, :target, :method_name, :arguments, :timestamp, :message_id
 
       def self.restore(raw_message, message_id)
         message_content = JSON(raw_message)
@@ -17,26 +17,30 @@ module Arsenicum
         arguments = message_content['arguments'].nil? ? [] :
             message_content['arguments'].map{|arg|restore_object(arg)}
 
-        new(target, method, arguments, timestamp, message_id: message_id, raw_message: raw_message)
+        new(target, method, arguments, timestamp: timestamp, message_id: message_id, raw_message: raw_message)
       end
 
-      def initialize(target, method, arguments, timestamp, message_id: nil, raw_message: nil)
+      def initialize(target, method_name, arguments,
+          timestamp: (Time.now.to_f * 1000000).to_i, message_id: nil, raw_message: nil)
         @target       = target
-        @method       = method
+        @method_name  = method_name.to_sym
         @arguments    = arguments
         @timestamp    = timestamp
         @message_id   = message_id
         @raw_message  = raw_message
       end
 
-
-      def serialize
-        JSON(
+      def to_h
+        {
             target: serialize_object(target),
-            timestamp: (Time.now.to_f * 1000000).to_i,
+            timestamp: timestamp,
             method_name: method_name,
             arguments: arguments.nil? ? nil : arguments.map { |arg| serialize_object(arg) },
-        )
+        }
+      end
+
+      def serialize
+        JSON(to_h)
       end
 
       def execute!

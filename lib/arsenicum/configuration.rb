@@ -76,7 +76,9 @@ module Arsenicum
         end
       end
 
-      @queue_configurations.merge!(default: QueueConfiguration::Default) unless @queue_configurations.include? :default
+      @queue_configurations ||= {}
+      @queue_configurations.merge!(default: QueueConfiguration::Default) unless
+          @queue_configurations.include?(:default)
 
       @post_office = Queueing::PostOffice.new self
     end

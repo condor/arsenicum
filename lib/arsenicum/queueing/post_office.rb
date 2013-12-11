@@ -34,16 +34,8 @@ module Arsenicum
         @default_queue = queues[:default]
       end
 
-      def deliver_to(target, method, *arguments)
-        values = {
-            target: serialize_object(target),
-            method_name: method_name,
-            arguments: arguments.nil? ? nil : arguments.map { |arg| serialize_object(arg) },
-            timestamp: (Time.now.to_f * 1000000).to_i,
-        }
-        specify_queue(target, method).
-            tap{|q|logger.debug { "Queue #{q.name}: Param #{values.inspect}" }}.
-            put(values)
+      def post(request)
+        specify_queue(request.target, request.method_name).put(request.serialize)
       end
 
       def logger
