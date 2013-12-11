@@ -40,7 +40,7 @@ module Arsenicum
       def configure(arg)
         config_values =
             if block_given?
-              value_holder = ConfigurationValueHolder.new
+              value_holder = TopLevelValueHolder.new
               yield(value_holder)
               value_holder.to_h
             else
@@ -57,7 +57,7 @@ module Arsenicum
                 when Hash
                   arg
                 else
-                  raise ArgumentError
+                  raise ArgumentError, 'configure should be called: with arg - any of [String(config file path), IO, Hash] - , or block'
               end
             end
         # The case where the config values is nil occurs only given arg is '*.rb',
@@ -131,6 +131,72 @@ module Arsenicum
       attr_config :background, :pidfile, :working_directory, :environment
     end
 
+  end
+
+  class ValueHolder
+    attr_reader :values
+    private     :values
+
+    def initialize
+      @values = {}
+    end
+
+    def to_h
+      values.dup
+    end
+
+    def method_missing(method_id, *args)
+      method_name = method_id.to_s
+      return __send__(method_name[0...-1].to_sym, *args) if method_name[-1] == '='
+
+      if block_given?
+        value_holder = self.class.new
+        yield(value_holder)
+        return values[method_id] = value_holder.to_h
+      end
+
+      if method_name.start_with? 'add_'
+        attr = method_name[4..-1].to_sym
+        if value[attr]
+          case value[attr]
+            when Array
+              raise ArgumentError, "The treatment of attribute #{attr} is confused" if args.count != 1
+              value[attr] << args.shift
+            when Hash
+              raise ArgumentError, "The treatment of attribute #{attr} is confused" if args.count != 2
+              value[attr][args[0].to_sym] = args[1]
+            else
+              raise "#{attr} is already defined as scalar even if it would be added"
+          end
+          return value[attr]
+        else
+          case args.count
+            when 1
+              value[attr] = [args.shift]
+            when 2
+              value[attr] = {args[0].to_sym => args[1]}
+            else
+              raise ArgumentError, "#{method_id} should be called with 1 or 2 argument(s)."
+          end
+        end
+        return value[attr]
+      end
+
+      return values[method_id] = args.shift if args.size > 0
+
+      return values[method_id]
+    end
+  end
+
+  class TopLevelValueHolder < ValueHolder
+    def queue(name)
+      raise ArgumentError, 'queue must be accompanied with block' unless block_given?
+      queue_value_holder = ValueHolder.new
+      yield(queue_value_holder)
+
+      values[:queues] ||= {}
+      values[:queues][name.to_sym] = queue_value_holder.to_h
+    end
   end
 
   class MisconfigurationError < StandardError;end
