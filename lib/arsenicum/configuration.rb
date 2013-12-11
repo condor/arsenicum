@@ -37,11 +37,11 @@ module Arsenicum
     class << self
       attr_reader :instance
 
-      def configure(arg)
+      def configure(arg, &block)
         config_values =
             if block_given?
               value_holder = TopLevelValueHolder.new
-              yield(value_holder)
+              value_holder.instance_eval(&block)
               value_holder.to_h
             else
               case arg
@@ -133,7 +133,7 @@ module Arsenicum
 
   end
 
-  class ValueHolder
+  class ValueHolder# < BasicObject
     attr_reader :values
     private     :values
 
@@ -145,13 +145,13 @@ module Arsenicum
       values.dup
     end
 
-    def method_missing(method_id, *args)
+    def method_missing(method_id, *args, &block)
       method_name = method_id.to_s
       return __send__(method_name[0...-1].to_sym, *args) if method_name[-1] == '='
 
       if block_given?
         value_holder = self.class.new
-        yield(value_holder)
+        value_holder.instance_eval(&block)
         return values[method_id] = value_holder.to_h
       end
 
@@ -189,13 +189,25 @@ module Arsenicum
   end
 
   class TopLevelValueHolder < ValueHolder
-    def queue(name)
+    def queue(name, &block)
       raise ArgumentError, 'queue must be accompanied with block' unless block_given?
-      queue_value_holder = ValueHolder.new
-      yield(queue_value_holder)
+      queue_value_holder = QueueValueHolder.new
+      queue_value_holder.instance_eval(&block)
 
       values[:queues] ||= {}
       values[:queues][name.to_sym] = queue_value_holder.to_h
+    end
+  end
+
+  class QueueValueHolder < ValueHolder
+    def classes(*args)
+      values[:classes] ||= Set.new
+      values[:classes] += args.map(&:to_s)
+    end
+
+    def methods(*args)
+      values[:methods] ||= Set.new
+      values[:methods] += args.map(&:to_s)
     end
   end
 
