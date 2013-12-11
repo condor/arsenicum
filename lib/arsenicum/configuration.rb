@@ -131,84 +131,84 @@ module Arsenicum
       attr_config :background, :pidfile, :working_directory, :environment
     end
 
-  end
+    class ValueHolder < BasicObject
+      attr_reader :values
+      private     :values
 
-  class ValueHolder# < BasicObject
-    attr_reader :values
-    private     :values
-
-    def initialize
-      @values = {}
-    end
-
-    def to_h
-      values.dup
-    end
-
-    def method_missing(method_id, *args, &block)
-      method_name = method_id.to_s
-      return __send__(method_name[0...-1].to_sym, *args) if method_name[-1] == '='
-
-      if block_given?
-        value_holder = self.class.new
-        value_holder.instance_eval(&block)
-        return values[method_id] = value_holder.to_h
+      def initialize
+        @values = {}
       end
 
-      if method_name.start_with? 'add_'
-        attr = method_name[4..-1].to_sym
-        if value[attr]
-          case value[attr]
-            when Array
-              raise ArgumentError, "The treatment of attribute #{attr} is confused" if args.count != 1
-              value[attr] << args.shift
-            when Hash
-              raise ArgumentError, "The treatment of attribute #{attr} is confused" if args.count != 2
-              value[attr][args[0].to_sym] = args[1]
-            else
-              raise "#{attr} is already defined as scalar even if it would be added"
+      def to_h
+        values.dup
+      end
+
+      def method_missing(method_id, *args, &block)
+        method_name = method_id.to_s
+        return __send__(method_name[0...-1].to_sym, *args) if method_name[-1] == '='
+
+        if block
+          value_holder = self.class.new
+          value_holder.instance_eval(&block)
+          return values[method_id] = value_holder.to_h
+        end
+
+        if method_name.start_with? 'add_'
+          attr = method_name[4..-1].to_sym
+          if value[attr]
+            case value[attr]
+              when Array
+                raise ::ArgumentError, "The treatment of attribute #{attr} is confused" if args.count != 1
+                value[attr] << args.shift
+              when Hash
+                raise ::ArgumentError, "The treatment of attribute #{attr} is confused" if args.count != 2
+                value[attr][args[0].to_sym] = args[1]
+              else
+                raise "#{attr} is already defined as scalar even if it would be added"
+            end
+            return value[attr]
+          else
+            case args.count
+              when 1
+                value[attr] = [args.shift]
+              when 2
+                value[attr] = {args[0].to_sym => args[1]}
+              else
+                raise ::ArgumentError, "#{method_id} should be called with 1 or 2 argument(s)."
+            end
           end
           return value[attr]
-        else
-          case args.count
-            when 1
-              value[attr] = [args.shift]
-            when 2
-              value[attr] = {args[0].to_sym => args[1]}
-            else
-              raise ArgumentError, "#{method_id} should be called with 1 or 2 argument(s)."
-          end
         end
-        return value[attr]
+
+        return values[method_id] = args.shift if args.size > 0
+
+        return values[method_id]
+      end
+    end
+
+    class QueueValueHolder < ValueHolder
+      def classes(*args)
+        values[:classes] ||= ::Set.new
+        values[:classes] += args.map(&:to_s)
       end
 
-      return values[method_id] = args.shift if args.size > 0
-
-      return values[method_id]
-    end
-  end
-
-  class TopLevelValueHolder < ValueHolder
-    def queue(name, &block)
-      raise ArgumentError, 'queue must be accompanied with block' unless block_given?
-      queue_value_holder = QueueValueHolder.new
-      queue_value_holder.instance_eval(&block)
-
-      values[:queues] ||= {}
-      values[:queues][name.to_sym] = queue_value_holder.to_h
-    end
-  end
-
-  class QueueValueHolder < ValueHolder
-    def classes(*args)
-      values[:classes] ||= Set.new
-      values[:classes] += args.map(&:to_s)
+      def methods(*args)
+        values[:methods] ||= ::Set.new
+        values[:methods] += args.map(&:to_s)
+      end
     end
 
-    def methods(*args)
-      values[:methods] ||= Set.new
-      values[:methods] += args.map(&:to_s)
+    class TopLevelValueHolder < ValueHolder
+      def queue(name, &block)
+        raise ::ArgumentError, 'queue must be accompanied with block' unless block
+        queue_value_holder = QueueValueHolder.new
+        queue_value_holder.instance_eval(&block)
+
+        values[:queues] ||= {}
+        values[:queues][name.to_sym] = queue_value_holder.to_h
+      end
     end
+
   end
 
   class MisconfigurationError < StandardError;end
