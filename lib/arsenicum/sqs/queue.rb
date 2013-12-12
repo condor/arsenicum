@@ -11,7 +11,8 @@ module Arsenicum::Sqs
     def configure(_, engine_config)
       @account = engine_config.account
       @sqs = AWS::SQS.new account
-      @wait_timeout = engine_config.wait_timeout ? timeout.to_i : DEFAULT_WAIT_TIMEOUT
+      @wait_timeout = engine_config.wait_timeout ?
+          engine_config.wait_timeout.to_i : DEFAULT_WAIT_TIMEOUT
     end
 
     def put_to_queue(json, named: name)
