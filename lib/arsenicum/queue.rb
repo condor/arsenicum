@@ -28,24 +28,22 @@ module Arsenicum
     #   1. put_to_queue(json): putting the actual message
     #     into the queue backend. The argument of this
     #     method will be the JSON string.
-    #   2. poll: polling the queue and retrieve the
-    #     message information. This method is expected to
-    #     return the message Hash. Its keys and values
-    #     are expected as below:
+    #   2. receive: receiving the top of the queue messages only once.
+    #      It must the hash with the keys and values as described below:
     #       :body: the raw string that was pushed
     #         via the :put_to_queue method.
     #       :id: the identifier of this message.
     #         This is usually used to update the status of
     #         message on the queue backend.
-    #   3. handle_success(message_id):
+    #   3. handle_success(id):
     #     The post-success process. Arguments are as below:
-    #       message_id: The identifier of the message processed.
-    #   4. handle_failure(message_id, exception, raw_message):
+    #       id: The identifier of the message processed.
+    #   4. handle_failure(id, exception, raw_message):
     #     The process if the task finishes in failure.
     #     Arguments are:
-    #       message_id: The identifier of the message that
+    #       id: The identifier of the message that
     #         ends in failure. This value should be the
-    #         :message_id of the return value of :poll.
+    #         :id of the return value of :queue.
     #       exception: The cause of the failure.
     #       raw_message: the message received.
     #   5. create_queue_backend - optional
