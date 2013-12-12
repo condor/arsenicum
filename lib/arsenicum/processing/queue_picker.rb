@@ -13,16 +13,37 @@ module Arsenicum
 
       def boot
         @main_thread = Thread.new do
-          loop do
-            processor.synchronize do
-              next wait if processor.full?
-              next wait unless message = queue.receive
+          begin
+            loop do
+              retrieved = processor.synchronize do
+                next if processor.full?
+                begin
+                  next unless message = queue.receive
+                rescue Exception => e
+                  logger.info e
+                  next
+                end
 
-              processor.push(Arsenicum::Queueing::Request.restore(message[:body], message[:id]))
+                logger.debug{"Message picked up #{message.inspect}"}
+
+                begin
+                  request = Arsenicum::Queueing::Request.restore(message[:body], message[:id])
+                  processor.push(request)
+                  true
+                rescue Exception => e
+                  logger.error "Message corrupts: message was #{message.inspect}"
+                  next
+                end
+              end
+
+              wait if retrieved
             end
-
+          rescue Exception => e
+            logger.error e
+            raise
           end
         end
+        self
       end
 
       def wait

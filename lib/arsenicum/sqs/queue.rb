@@ -5,18 +5,18 @@ module Arsenicum::Sqs
     attr_reader :sqs
     attr_reader :actual_name
 
-    attr_reader :engine_configuration
-    private     :engine_configuration
+    attr_reader :engine_config
+    private     :engine_config
 
     DEFAULT_WAIT_TIMEOUT = 1
     DELIMITER_PREFIX = '-'.freeze
 
     def configure(_, engine_config)
-      @engine_configuration = engine_config
+      @engine_config = engine_config
       @sqs = AWS::SQS.new account
       @actual_name =
-          (engine_configuration.queue_name_prefix ?
-              [engine_configuration.queue_name_prefix, name.to_s].join(DELIMITER_PREFIX) : name).to_s
+          (engine_config.queue_name_prefix ?
+              [engine_config.queue_name_prefix, name.to_s].join(DELIMITER_PREFIX) : name).to_s
     end
 
     def put_to_queue(json)
@@ -29,15 +29,16 @@ module Arsenicum::Sqs
       {
         body: message.body,
         id: message.handle,
-      }.tap{|m|logger.debug { "MESSAGE RECEIVED: #{m.inspect}" } }
+      }.tap{|m|logger.debug { "MESSAGE RECEIVED: #{m.inspect}" } } if message
     end
 
     def handle_failure(id, exception, raw_message)
-      # TODO logging
+      logger.error "Message ##{id} failure; exception with #{exception.inspect}, message #{raw_message}"
+      logger.info exception.backtrace.join("\n")
     end
 
     def handle_success(id)
-      sqs_queue = sqs.named(actual_name)
+      sqs_queue = sqs.queues.named(actual_name)
       sqs.client.delete_message queue_url: sqs_queue.url, receipt_handle: id
     end
 
@@ -50,12 +51,12 @@ module Arsenicum::Sqs
     ].freeze
 
     def account
-      engine_configuration.account
+      engine_config.account
     end
 
     def create_queue_backend
-      if engine_configuration.queue_creation_options
-        creation_options = engine_configuration.queue_creation_options.dup
+      if engine_config.queue_creation_options
+        creation_options = engine_config.queue_creation_options.dup
 
         CREATION_OPTIONS_IN_JSON.each do |opt|
           creation_options[opt] = JSON(creation_options[opt]) if creation_options[opt]

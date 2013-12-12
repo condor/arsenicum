@@ -8,26 +8,24 @@ module Arsenicum
       attr_reader :method_queue_tables
       attr_reader :class_queue_tables
 
-      def initialize(configuration)
+      def initialize(config)
         @method_queue_tables = {}
         @class_queue_tables = {}
 
-        @queues = configuration.queue_configurations.inject({}) do |h, kv|
-          (queue_name, queue_configuration) = kv
-          queue = configuration.queue_class.new(
-              queue_name,
-              logger: configuration.logger,
-              config: queue_configuration,
-              engine_config: configuration.engine_configuration
+        @queues = config.queue_configs.values.inject({}) do |h, queue_config|
+          queue = config.queue_class.new(
+              queue_config,
+              logger: config.logger,
+              engine_config: config.engine_config
           )
 
-          Array(queue_configuration.methods).tap(&:compact!).each do |m|
+          Array(queue_config.methods).tap(&:compact!).each do |m|
             method_queue_tables[m] ||= queue
           end
-          Array(queue_configuration.classes).tap(&:compact!).each do |m|
+          Array(queue_config.classes).tap(&:compact!).each do |m|
             class_queue_tables[m] ||= queue
           end
-          h[queue_name] = queue
+          h[queue.name] = queue
 
           h
         end
@@ -39,7 +37,7 @@ module Arsenicum
       end
 
       def logger
-        configuration.logger
+        config.logger
       end
 
       private

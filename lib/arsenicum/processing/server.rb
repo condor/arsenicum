@@ -24,13 +24,11 @@ module Arsenicum
         config.logger.info "Booting Arsenicum Processor..."
         Signal.trap(:INT, &method(:trap_interruption))
 
-        @queue_pickers = config.queue_configurations.map do |kv|
-          (queue_name, queue_config) = kv
+        @queue_pickers = config.queue_config.values.map do |queue_config|
           queue = config.queue_class.new(
-              queue_name,
+              queue_config,
               logger: config.logger,
-              config: queue_config,
-              engine_config: config.engine_configuration,
+              engine_config: config.engine_config,
           )
 
           QueuePicker.new(queue)

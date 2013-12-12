@@ -6,8 +6,8 @@ module Arsenicum
 
     attr_reader   :name, :concurrency, :logger, :config, :engine_config
 
-    def initialize(name, logger: nil, config: nil, engine_config: nil)
-      @name = name
+    def initialize(config, logger: logger, engine_config: nil)
+      @name = config.queue_name
       @logger = logger
       @config = config
       @engine_config = engine_config

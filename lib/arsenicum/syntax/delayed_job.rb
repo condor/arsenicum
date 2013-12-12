@@ -6,7 +6,8 @@ module Arsenicum::Syntax
       end
 
       def method_missing(method_id, *arguments)
-        ::Arsenicum::Configuration.instance.post_office.post(@wrapped_object, method_id, *arguments)
+        ::Arsenicum::Configuration.instance.
+            post_office.post ::Arsenicum::Queueing::Request.new(@wrapped_object, method_id, *arguments)
       end
     end
 

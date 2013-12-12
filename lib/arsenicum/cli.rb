@@ -7,14 +7,14 @@ module Arsenicum
 
     autoload :Rails, 'arsenicum/cli/rails'
 
-    attr_reader :configuration
+    attr_reader :config
 
     def initialize(argv)
-      @configuration = option_parser.parse!(argv)
+      @config = option_parser.parse!(argv)
     end
 
     def boot
-      Arsenicum::Procerssing::Server.start(Arsenicum::Configuration.new(configuration))
+      Arsenicum::Procerssing::Server.start(Arsenicum::Configuration.new(config))
     end
 
     class OptionParser

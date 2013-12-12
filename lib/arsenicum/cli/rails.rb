@@ -3,7 +3,7 @@ module Arsenicum
     include Arsenicum::Util
 
     def boot
-      configuration = self.configuration
+      configuration = self.config
       environment = ENV['RAILS_ENV'] || :development
       environment = environment.to_sym
       config_for_env = configuration[environment]

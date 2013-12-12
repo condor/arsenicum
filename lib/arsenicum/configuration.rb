@@ -31,7 +31,7 @@ module Arsenicum
 
     include Arsenicum::Util
 
-    attr_accessor :queue_configurations, :engine_configuration, :queue_class, :logger,
+    attr_accessor :queue_configs, :engine_config, :queue_class, :logger,
                   :post_office, :server
 
     class << self
@@ -48,7 +48,7 @@ module Arsenicum
                 when String
                   if arg.end_with? '.rb'
                     load arg
-                    nil # because configuration is expected to be finished in the loaded script.
+                    nil # because config is expected to be finished in the loaded script.
                   else
                     YAML.load(File.read arg, encoding: 'UTF-8')
                   end
@@ -61,7 +61,7 @@ module Arsenicum
               end
             end
         # The case where the config values is nil occurs only given arg is '*.rb',
-        #   which means that configuration by Ruby script is expected to be completed in the script.
+        #   which means that config by Ruby script is expected to be completed in the script.
         #   That script will call configure with block.
         @instance = new(config_values) if config_values
         @instance
@@ -82,7 +82,7 @@ module Arsenicum
             @log_formatter = -> severity, datetime, program_name, message { value.freeze }
             @logger.formatter = @log_formatter
           when :queues
-            @queue_configurations = value.inject({}) do |h, kv|
+            @queue_configs = value.inject({}) do |h, kv|
               (queue_name, queue_config) = kv
               h.tap do |i|
                 i.merge! queue_name => QueueConfiguration.new(queue_name, queue_config)
@@ -92,19 +92,19 @@ module Arsenicum
             @engine = value.to_sym
             @engine_namespace = Arsenicum.const_get(camelcase(@engine))
             @queue_class = @engine_namespace.const_get(:Queue)
-            @engine_configuration_class = @engine_namespace.const_get(:Configuration)
-            @engine_configuration = @engine_configuration_class.new(configs[@engine]) if configs[@engine]
+            @engine_config_class = @engine_namespace.const_get(:Configuration)
+            @engine_config = @engine_config_class.new(configs[@engine]) if configs[@engine]
           when @engine
-            @engine_configuration = @engine_configuration_class.new(value)
+            @engine_config = @engine_config_class.new(value)
           else
             configs[key] = value
         end
       end
       @logger ||= Logger.new(STDOUT)
 
-      @queue_configurations ||= {}
-      @queue_configurations.merge!(default: QueueConfiguration::Default) unless
-          @queue_configurations.include?(:default)
+      @queue_configs ||= {}
+      @queue_configs.merge!(default: QueueConfiguration::Default) unless
+          @queue_configs.include?(:default)
 
       @post_office = Queueing::PostOffice.new self
     end
@@ -112,7 +112,7 @@ module Arsenicum
     class QueueConfiguration
       include ConfiguredByHash
       attr_reader :queue_name
-      attr_config :methods, :classes, :concurrency
+      attr_config :methods, :classes, :concurrency, :timeout
 
       DEFAULT_CONCURRENCY = 2
 

@@ -9,6 +9,10 @@ module Arsenicum
 
       include Arsenicum::Util
 
+      def self.included(base)
+        base.__send__ :extend, self
+      end
+
       def serialize_object(value)
         serialize_object_specific(value) || serialize_object_default(value)
       end

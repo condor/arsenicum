@@ -5,7 +5,7 @@ require 'weakref'
 module Arsenicum
   module Processing
     class Processor
-      attr_reader :head, :tail, :max_size , :current_size
+      attr_reader :head, :tail, :max_size , :current_size, :queue
 
       def initialize(queue)
         @mutex = Mutex.new
@@ -34,6 +34,8 @@ module Arsenicum
           @tail = work
         end
 
+        @head = work unless head
+
         @current_size += 1
       end
 
@@ -45,7 +47,7 @@ module Arsenicum
         @mutex.synchronize do
           item = head
           item = item.next while item && item.running?
-          item
+          item.tap{|w|w.mark_running if w}
         end
       end
 
@@ -88,18 +90,18 @@ module Arsenicum
       class Work
         extend Forwardable
 
-        attr_reader   :queue, :request
-        attr_reader   :worker
-        attr_reader   :next, :prev
+        attr_reader     :queue, :request
+        attr_reader     :worker
+        attr_accessor   :next, :prev
 
-        def_delegators :@mutex, :synchronize
+        def_delegators  :@mutex, :synchronize
 
         def initialize(queue, request)
           @request = request
-          @queue = queue
+          @queue = WeakRef.new(queue)
           @mutex = Mutex.new
 
-          if timeout = queue.configuration.detention_limit
+          if timeout = queue.config.timeout
             Thread.new do
               begin
                 Timeout.timeout timeout do
@@ -163,6 +165,7 @@ module Arsenicum
 
               begin
                 work.run
+                work.handle_success
               rescue Exception => e
                 work.handle_error e
               ensure
@@ -174,7 +177,6 @@ module Arsenicum
         end
 
         def work_with(work)
-          work.mark_running
           work.worker = self
           @work = work
         end
