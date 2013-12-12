@@ -20,7 +20,7 @@ module Arsenicum
         new(target, method, arguments, timestamp: timestamp, message_id: message_id, raw_message: raw_message)
       end
 
-      def initialize(target, method_name, arguments,
+      def initialize(target, method_name, arguments = nil,
           timestamp: (Time.now.to_f * 1000000).to_i, message_id: nil, raw_message: nil)
         @target       = target
         @method_name  = method_name.to_sym
