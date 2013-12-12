@@ -2,22 +2,24 @@ require 'aws-sdk'
 
 module Arsenicum::Sqs
   class Queue < Arsenicum::Queue
-    attr_reader :account
     attr_reader :sqs
     attr_reader :wait_timeout
     attr_reader :actual_name
+
+    attr_reader :engine_configuration
+    private :engine_config
 
     DEFAULT_WAIT_TIMEOUT = 1
     DELIMITER_PREFIX = '.'.freeze
 
     def configure(_, engine_config)
-      @account = engine_config.account
+      @engine_configuration = engine_config
       @sqs = AWS::SQS.new account
-      @wait_timeout = engine_config.wait_timeout ?
-          engine_config.wait_timeout.to_i : DEFAULT_WAIT_TIMEOUT
+      @wait_timeout = engine_configuration.wait_timeout ?
+          engine_configuration.wait_timeout.to_i : DEFAULT_WAIT_TIMEOUT
       @actual_name =
-          (engine_config.queue_name_prefix ?
-              [engine_config.queue_name_prefix, name.to_s].join(DELIMITER_PREFIX) : name).to_s
+          (engine_configuration.queue_name_prefix ?
+              [engine_configuration.queue_name_prefix, name.to_s].join(DELIMITER_PREFIX) : name).to_s
     end
 
     def put_to_queue(json)
@@ -51,11 +53,17 @@ module Arsenicum::Sqs
       :policy,
     ].freeze
 
-    def create_queue_backend
-      creation_options = engine_configuration.creation_options.dup
+    def account
+      engine_configuration.account
+    end
 
-      CREATION_OPTIONS_IN_JSON.each do |opt|
-        creation_options[opt] = JSON(creation_options[opt]) if creation_options[opt]
+    def create_queue_backend
+      if engine_configuration.creation_options
+        creation_options = engine_configuration.queue_creation_options.dup
+
+        CREATION_OPTIONS_IN_JSON.each do |opt|
+          creation_options[opt] = JSON(creation_options[opt]) if creation_options[opt]
+        end
       end
 
       begin
