@@ -15,7 +15,7 @@ describe Arsenicum::Queueing::PostOffice do
 
   describe :deliver_to do
     shared_examples_for :correct_delivery do
-      let(:result){subject.queues[queue_name].poll}
+      let(:result){subject.queues[queue_name].receive}
       let(:request_object){Arsenicum::Queueing::Request.new request[:target], request[:method], request[:arguments]}
 
       before{subject.post request_object}

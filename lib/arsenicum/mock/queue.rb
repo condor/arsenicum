@@ -12,7 +12,7 @@ module Arsenicum
         queues << json
       end
 
-      def poll
+      def receive
         {
             body: queues.shift,
             id: Time.now.to_f.to_s,

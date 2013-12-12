@@ -144,11 +144,11 @@ module Arsenicum
         end
 
         def handle_error(e)
-          queue.handle_failure(request.message_id, e, request.raw_message)
+          queue.handle_failure(request.id, e, request.raw_message)
         end
 
         def handle_success
-          queue.handle_success(request.message_id)
+          queue.handle_success(request.id)
         end
       end
 

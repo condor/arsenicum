@@ -3,20 +3,17 @@ require 'aws-sdk'
 module Arsenicum::Sqs
   class Queue < Arsenicum::Queue
     attr_reader :sqs
-    attr_reader :wait_timeout
     attr_reader :actual_name
 
     attr_reader :engine_configuration
-    private :engine_config
+    private     :engine_configuration
 
     DEFAULT_WAIT_TIMEOUT = 1
-    DELIMITER_PREFIX = '.'.freeze
+    DELIMITER_PREFIX = '-'.freeze
 
     def configure(_, engine_config)
       @engine_configuration = engine_config
       @sqs = AWS::SQS.new account
-      @wait_timeout = engine_configuration.wait_timeout ?
-          engine_configuration.wait_timeout.to_i : DEFAULT_WAIT_TIMEOUT
       @actual_name =
           (engine_configuration.queue_name_prefix ?
               [engine_configuration.queue_name_prefix, name.to_s].join(DELIMITER_PREFIX) : name).to_s
@@ -27,22 +24,21 @@ module Arsenicum::Sqs
       sqs_queue.send_message(json)
     end
 
-    def poll
-      sqs.queues.named(actual_name).poll(wait_time_out: wait_timeout) do |message|
-        {
-          body: message.body,
-          id: message.handle,
-        }.tap{|m|logger.debug { "MESSAGE RECEIVED: #{m.inspect}" } }
-      end
+    def receive
+      message = sqs.queues.named(actual_name).receive_message
+      {
+        body: message.body,
+        id: message.handle,
+      }.tap{|m|logger.debug { "MESSAGE RECEIVED: #{m.inspect}" } }
     end
 
-    def handle_failure(message_id, exception, raw_message)
+    def handle_failure(id, exception, raw_message)
       # TODO logging
     end
 
-    def handle_success(message_id)
+    def handle_success(id)
       sqs_queue = sqs.named(actual_name)
-      sqs.client.delete_message queue_url: sqs_queue.url, receipt_handle: message_id
+      sqs.client.delete_message queue_url: sqs_queue.url, receipt_handle: id
     end
 
     CREATION_OPTIONS = [
@@ -58,12 +54,14 @@ module Arsenicum::Sqs
     end
 
     def create_queue_backend
-      if engine_configuration.creation_options
+      if engine_configuration.queue_creation_options
         creation_options = engine_configuration.queue_creation_options.dup
 
         CREATION_OPTIONS_IN_JSON.each do |opt|
           creation_options[opt] = JSON(creation_options[opt]) if creation_options[opt]
         end
+      else
+        creation_options = {}
       end
 
       begin

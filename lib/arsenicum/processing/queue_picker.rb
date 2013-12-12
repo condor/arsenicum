@@ -16,7 +16,7 @@ module Arsenicum
           loop do
             processor.synchronize do
               next wait if processor.full?
-              next wait unless message = queue.poll
+              next wait unless message = queue.receive
 
               processor.push(Arsenicum::Queueing::Request.restore(message[:body], message[:id]))
             end
