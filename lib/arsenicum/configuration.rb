@@ -70,7 +70,6 @@ module Arsenicum
 
     def initialize(values)
       configs = {}
-      @logger = Logger.new(STDOUT)
 
       normalize_hash(values).each do |key, value|
         case key
@@ -101,6 +100,7 @@ module Arsenicum
             configs[key] = value
         end
       end
+      @logger ||= Logger.new(STDOUT)
 
       @queue_configurations ||= {}
       @queue_configurations.merge!(default: QueueConfiguration::Default) unless
@@ -148,7 +148,7 @@ module Arsenicum
         return __send__(method_name[0...-1].to_sym, *args) if method_name[-1] == '='
 
         if block
-          value_holder = self.class.new
+          value_holder = ::Arsenicum::Configuration::ValueHolder.new
           value_holder.instance_eval(&block)
           return values[method_id] = value_holder.to_h
         end
