@@ -12,7 +12,7 @@ lib/bundler/man
 pkg
 rdoc
 spec/reports
-spec/config.yml
+spec/config/config.yml
 test/tmp
 test/version_tmp
 tmp
