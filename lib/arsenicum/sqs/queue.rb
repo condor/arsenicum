@@ -5,14 +5,19 @@ module Arsenicum::Sqs
     attr_reader :account
     attr_reader :sqs
     attr_reader :wait_timeout
+    attr_reader :physical_name
 
     DEFAULT_WAIT_TIMEOUT = 1
+    DELIMITER_PREFIX = '.'.freeze
 
     def configure(_, engine_config)
       @account = engine_config.account
       @sqs = AWS::SQS.new account
       @wait_timeout = engine_config.wait_timeout ?
           engine_config.wait_timeout.to_i : DEFAULT_WAIT_TIMEOUT
+      @physical_name =
+          (engine_config.queue_name_prefix ?
+              [engine_config.queue_name_prefix, name.to_s].join(DELIMITER_PREFIX) : name).to_sym
     end
 
     def put_to_queue(json, named: name)
