@@ -5,7 +5,7 @@ module Arsenicum::Sqs
     attr_reader :account
     attr_reader :sqs
     attr_reader :wait_timeout
-    attr_reader :physical_name
+    attr_reader :actual_name
 
     DEFAULT_WAIT_TIMEOUT = 1
     DELIMITER_PREFIX = '.'.freeze
@@ -15,18 +15,18 @@ module Arsenicum::Sqs
       @sqs = AWS::SQS.new account
       @wait_timeout = engine_config.wait_timeout ?
           engine_config.wait_timeout.to_i : DEFAULT_WAIT_TIMEOUT
-      @physical_name =
+      @actual_name =
           (engine_config.queue_name_prefix ?
-              [engine_config.queue_name_prefix, name.to_s].join(DELIMITER_PREFIX) : name).to_sym
+              [engine_config.queue_name_prefix, name.to_s].join(DELIMITER_PREFIX) : name).to_s
     end
 
-    def put_to_queue(json, named: name)
-      sqs_queue = sqs.queues.named(named.to_s)
+    def put_to_queue(json)
+      sqs_queue = sqs.queues.named(actual_name)
       sqs_queue.send_message(json)
     end
 
     def poll
-      sqs.queues.named(name.to_s).poll(wait_time_out: wait_timeout) do |message|
+      sqs.queues.named(actual_name).poll(wait_time_out: wait_timeout) do |message|
         {
           body: message.body,
           id: message.handle,
@@ -39,7 +39,7 @@ module Arsenicum::Sqs
     end
 
     def handle_success(message_id)
-      sqs_queue = sqs.named(name)
+      sqs_queue = sqs.named(actual_name)
       sqs.client.delete_message queue_url: sqs_queue.url, receipt_handle: message_id
     end
 
@@ -59,10 +59,10 @@ module Arsenicum::Sqs
       end
 
       begin
-        sqs.queues.named(name.to_s)
+        sqs.queues.named(actual_name)
         puts "Not Created Queue #{name}:Exists"
       rescue AWS::SQS::Errors::NonExistentQueue
-        sqs.queues.create name.to_s, creation_options
+        sqs.queues.create actual_name, creation_options
         puts "Created Queue #{name}"
       end
     end
