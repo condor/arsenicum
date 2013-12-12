@@ -13,6 +13,7 @@ pkg
 rdoc
 spec/reports
 spec/config/config.yml
+spec/config/config.rb
 test/tmp
 test/version_tmp
 tmp
