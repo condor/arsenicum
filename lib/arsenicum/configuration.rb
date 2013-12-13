@@ -112,7 +112,8 @@ module Arsenicum
     class QueueConfiguration
       include ConfiguredByHash
       attr_reader :queue_name
-      attr_config :methods, :classes, :concurrency, :timeout
+      attr_config :methods, :classes, :concurrency, :timeout, :message_raw, :handler
+      alias_method :message_raw?, :message_raw
 
       DEFAULT_CONCURRENCY = 2
 

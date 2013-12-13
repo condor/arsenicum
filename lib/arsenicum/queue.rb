@@ -2,12 +2,20 @@ require 'json'
 
 module Arsenicum
   class Queue
+    include ::Arsenicum::Queueing::Serializer
+
     DEFAULT_CONCURRENCY = 5
 
-    attr_reader   :name, :concurrency, :logger, :config, :engine_config
+    attr_reader   :name, :concurrency, :logger, :config, :engine_config, :timeout, :message_raw
+    alias_method  :message_raw?, :message_raw
 
     def initialize(config, logger: logger, engine_config: nil)
       @name = config.queue_name
+      @timeout = config.timeout
+      @message_raw = config.message_raw?
+
+      @handler = config.handler.is_a?(Hash) ? restore_object(config.handler) : config.handler
+
       @logger = logger
       @config = config
       @engine_config = engine_config

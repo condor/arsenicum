@@ -8,42 +8,42 @@ describe Arsenicum::Queueing::Serializer do
   describe [:serialize_object, :restore_object] do
 
     shared_examples_for :serialize_restore do
-      specify{expect(subject.restore_object subject.serialize_object target).to eq(target)}
+      specify{expect(subject.restore_object subject.serialize_object worker).to eq(worker)}
     end
 
     context :target_is_raw do
       shared_examples_for :raw_object do
-        specify{expect(subject.serialize_object target).to eq({type: 'raw', value: target.inspect})}
+        specify{expect(subject.serialize_object worker).to eq({type: 'raw', value: worker.inspect})}
         it_should_behave_like :serialize_restore
       end
 
       context :target_is_integer do
-        let(:target){1}
+        let(:worker){1}
         it_should_behave_like :raw_object
       end
 
       context :target_is_float do
-        let(:target){1.3}
+        let(:worker){1.3}
         it_should_behave_like :raw_object
       end
 
       context :target_is_string do
-        let(:target){"string"}
+        let(:worker){"string"}
         it_should_behave_like :raw_object
       end
 
       context :target_is_true do
-        let(:target){true}
+        let(:worker){true}
         it_should_behave_like :raw_object
       end
 
       context :target_is_false do
-        let(:target){false}
+        let(:worker){false}
         it_should_behave_like :raw_object
       end
 
       context :target_is_nil do
-        let(:target){nil}
+        let(:worker){nil}
         it_should_behave_like :raw_object
       end
 
@@ -51,9 +51,9 @@ describe Arsenicum::Queueing::Serializer do
 
     context :time_like do
       shared_examples_for :date_time do
-        let(:target){target_type.now}
-        specify{expect(subject.serialize_object target).to eq({type: 'datetime', value: target.strftime('%Y-%m-%dT%H:%M:%S %Z %z')})}
-        specify{expect(subject.restore_object(subject.serialize_object target).to_i).to eq(target.to_time.to_i)}
+        let(:worker){target_type.now}
+        specify{expect(subject.serialize_object worker).to eq({type: 'datetime', value: worker.strftime('%Y-%m-%dT%H:%M:%S %Z %z')})}
+        specify{expect(subject.restore_object(subject.serialize_object worker).to_i).to eq(worker.to_time.to_i)}
       end
 
       context :target_is_datetime do

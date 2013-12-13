@@ -16,7 +16,9 @@ describe Arsenicum::Queueing::PostOffice do
   describe :deliver_to do
     shared_examples_for :correct_delivery do
       let(:result){subject.queues[queue_name].receive}
-      let(:request_object){Arsenicum::Queueing::Request.new request[:target], request[:method], request[:arguments]}
+      let(:request_object) do
+        Arsenicum::Queueing::Request.new target: task[:worker], method_name: task[:method], arguments: task[:arguments]
+      end
 
       before{subject.post request_object}
 
@@ -26,9 +28,9 @@ describe Arsenicum::Queueing::PostOffice do
 
     describe 'class method invocation' do
       context do
-        let(:request){
+        let(:task){
           {
-              target: SampleB,
+              worker: SampleB,
               method: :hoge2,
               arguments: [1]
           }
@@ -37,9 +39,9 @@ describe Arsenicum::Queueing::PostOffice do
         it_should_behave_like :correct_delivery
       end
       context '' do
-        let(:request){
+        let(:task){
           {
-              target: SampleB,
+              worker: SampleB,
               method: :hoge1,
               arguments: [1]
           }
@@ -48,9 +50,9 @@ describe Arsenicum::Queueing::PostOffice do
         it_should_behave_like :correct_delivery
       end
       context do
-        let(:request){
+        let(:task){
           {
-              target: SampleA,
+              worker: SampleA,
               method: :hoge1,
               arguments: [1]
           }
@@ -59,9 +61,9 @@ describe Arsenicum::Queueing::PostOffice do
         it_should_behave_like :correct_delivery
       end
       context 'fallback to default' do
-        let(:request){
+        let(:task){
           {
-              target: Default,
+              worker: Default,
               method: :hoge1,
               arguments: [1]
           }
@@ -73,9 +75,9 @@ describe Arsenicum::Queueing::PostOffice do
 
     describe 'instance method invocation' do
       context do
-        let(:request){
+        let(:task){
           {
-              target: SampleB.new,
+              worker: SampleB.new,
               method: :hoge2,
               arguments: [1]
           }
@@ -84,9 +86,9 @@ describe Arsenicum::Queueing::PostOffice do
         it_should_behave_like :correct_delivery
       end
       context '' do
-        let(:request){
+        let(:task){
           {
-              target: SampleB.new,
+              worker: SampleB.new,
               method: :hoge1,
               arguments: [1]
           }
@@ -95,9 +97,9 @@ describe Arsenicum::Queueing::PostOffice do
         it_should_behave_like :correct_delivery
       end
       context do
-        let(:request){
+        let(:task){
           {
-              target: SampleA.new,
+              worker: SampleA.new,
               method: :hoge1,
               arguments: [1]
           }
@@ -106,9 +108,9 @@ describe Arsenicum::Queueing::PostOffice do
         it_should_behave_like :correct_delivery
       end
       context 'fallback to default' do
-        let(:request){
+        let(:task){
           {
-              target: Default.new,
+              worker: Default.new,
               method: :hoge1,
               arguments: [1]
           }

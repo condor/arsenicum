@@ -5,81 +5,87 @@ require 'weakref'
 module Arsenicum
   module Processing
     class Processor
-      attr_reader :head, :tail, :max_size , :current_size, :queue
+      attr_reader :waiting_tasks, :concurrency, :current_concurrency, :queue, :logger
 
       def initialize(queue)
         @mutex = Mutex.new
+        @watchdogs_mutex = Mutex.new
         @queue = queue
-        @max_size = queue.concurrency
-        @current_size = 0
+        @concurrency = queue.concurrency
+        @logger = queue.logger
+        @current_concurrency = 0
 
-        @workers = @max_size.times.map do |_|
-          Worker.new self
-        end
+        @workers = concurrency.times.map {|_| Worker.new self }
+        @waiting_tasks = Array.new(concurrency)
+        @watchdogs = concurrency.times.map{|_| WatchDog.new queue.timeout}
 
         Thread.new do
           loop do
-            next(sleep 1) unless work = pickup
-            @workers.shift.work_with work
+            (worker, task) = @mutex.synchronize do
+              next unless task = @waiting_tasks.shift
+              [@workers.shift, task]
+            end
+            worker ? worker.start_with(task) : sleep(0.1)
           end
         end
       end
 
-      def push(request)
-        work = Work.new queue, request
-        if tail
-          tail.next = work
-          work.prev = tail
-        else
-          @tail = work
+      def boot
+        @main_thread = Thread.new do
+          begin
+            loop do
+              retrieved = @mutex.synchronize do
+                next if full?
+
+                begin
+                  next unless message = queue.receive
+                rescue Exception => e
+                  logger.info e
+                  next
+                end
+
+                begin
+                  watchdog = @watchdogs_mutex.synchronize{@watchdogs.shift}
+                  watchdog.start(target: Thread.current)
+                  request = Arsenicum::Queueing::Request.restore(message[:body], message[:id], queue.raw?)
+                  task = Task.new(request, watchdog)
+                  push(task)
+                  true
+                rescue Exception => e
+                  logger.error "Message corrupts: message was #{message.inspect}"
+                  next
+                end
+              end
+
+              wait if retrieved
+            end
+          rescue Exception => e
+            logger.error e
+            raise
+          end
         end
+        self
+      end
 
-        @head = work unless head
+      def accept_replacement(worker: nil)
+        @mutex.synchronize do
+          @workers.push(worker)
+          @current_concurrency -= 1
+        end
+      end
 
-        @current_size += 1
+      private
+      def push(request)
+        waiting_tasks << request
+        @current_concurrency += 1
       end
 
       def full?
-        current_size == max_size
+        current_concurrency == concurrency
       end
 
-      def pickup
-        @mutex.synchronize do
-          item = head
-          item = item.next while item && item.running?
-          item.tap{|w|w.mark_running if w}
-        end
-      end
-
-      def complete(work)
-        work.synchronize do
-          work.worker = nil
-          work.mark_processed
-        end
-
-        @mutex.synchronize do
-          if work == head
-            @head = work.next
-            head.prev = nil if head
-          end
-
-          if work == tail
-            @tail = work.prev
-            tail.next = nil if tail
-          end
-
-          @current_size -= 1
-        end
-      end
-
-      def turn_in(worker: nil)
-        @workers.push(worker)
-      end
-
-      def terminate
-        @workers.each do |worker|
-          worker.thread.terminate
-        end
+      def complete
+        @mutex.synchronize{@current_concurrency -= 1}
       end
 
       def synchronize
@@ -87,102 +93,115 @@ module Arsenicum
         @mutex.synchronize{yield}
       end
 
-      class Work
+      def wait
+        sleep 0.1
+      end
+
+      def shutdown
+        @main_thread.terminate
+        @workers.each do |worker|
+          worker.thread.terminate
+        end
+      end
+
+      class Task
+        attr_reader :request
+
+        def initialize(queue, request, watchdog = nil)
+          @request = request
+          @watchdog = watchdog
+        end
+
+        def switch_context
+          @watchdog.switch_context if @watchdog
+        end
+
+        def complete
+          @watchdog.stop if @watchdog
+        end
+      end
+
+      class WatchDog
+        def initialize(timeout)
+          @thread = Thread.new do
+            loop do
+              @context.raise(Timeout::Error) if @start && Time.now.to_f - @start > timeout
+              next sleep(0.01)
+            end
+          end
+        end
+
+        def start
+          @context = Thread.current
+          @start = Time.now.to_f
+        end
+
+        def stop
+          @start = nil
+          @context = nil
+        end
+
+        def switch_context
+          @context = Thread.current
+        end
+      end
+
+
+      class Worker
         extend Forwardable
 
-        attr_reader     :queue, :request
-        attr_reader     :worker
-        attr_accessor   :next, :prev
+        attr_reader   :thread, :request
+        def_delegator :queue,   :@processor
 
-        def_delegators  :@mutex, :synchronize
 
-        def initialize(queue, request)
-          @request = request
-          @queue = WeakRef.new(queue)
+        def initialize(processor)
+          @processor = WeakRef.new(processor)
           @mutex = Mutex.new
 
-          if timeout = queue.config.timeout
-            Thread.new do
+          @thread = Thread.new do
+            loop do
+              # Avoid termination even if Timeout::Error is raised.
               begin
-                Timeout.timeout timeout do
-                  loop do
-                    break if processed?
-                    sleep 1
-                  end
-                end
-              rescue Timeout::Error => e
-                worker.raise_error e if worker
+                next(sleep 0.5) unless task
+              rescue Timeout::Error
+                next
+              end
+
+              begin
+                task.switch_context
+                work
+              rescue Exception => e
+                task.handle_error e
+              ensure
+                complete_work
               end
             end
+          end
+        end
+
+        def complete_work
+          task.complete
+          @mutex.synchronize do
+            processor.complete
+            @processor.accept_replacement worker: self
+            @task = nil
           end
         end
 
         def run
-          request.execute!
+          work.run
+          work.handle_success
         end
 
-        def worker=(worker)
-          @worker = WeakRef.new(worker)
-        end
-
-        def running?
-          @state == :running
-        end
-
-        def processed?
-          @state == :processed
-        end
-
-        def mark_running
-          @state = :running
-        end
-
-        def mark_processed
-          @state = :processed
-        end
-
-        def timed_out?
-          !!@timed_out
-        end
-
-        def handle_error(e)
-          queue.handle_failure(request.id, e, request.raw_message)
-        end
-
-        def handle_success
-          queue.handle_success(request.id)
-        end
-      end
-
-      class Worker
-        attr_reader :thread, :work
-
-        def initialize(processor)
-          @processor = WeakRef.new(processor)
-          @thread = Thread.new do
-            loop do
-              next(sleep 0.5) unless work
-
-              begin
-                work.run
-                work.handle_success
-              rescue Exception => e
-                work.handle_error e
-              ensure
-                processor.complete(work)
-                @processor.turn_in worker: self
-              end
-            end
+        def interrupt
+          @mutex.synchronize do
+            return unless task
+            @thread.raise Timeout::Error
           end
         end
 
-        def work_with(work)
-          work.worker = self
-          @work = work
-        end
-
-        def raise_error(e)
-          thread.raise e
+        def start_with(task)
+          @task = task
         end
       end
     end

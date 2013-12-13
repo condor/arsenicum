@@ -5,32 +5,43 @@ module Arsenicum
     class Request
       include Serializer
 
-      attr_reader :raw_message, :target, :method_name, :arguments, :timestamp, :id
+      attr_reader :original, :target, :method_name, :arguments, :timestamp, :id, :raw_data
 
-      def self.restore(raw_message, id)
+      def self.restore(raw_message, id, raw: false)
         message_content = JSON(raw_message)
 
-        timestamp = message_content['timestamp']
-        method = message_content['method_name'].to_sym
+        if raw
+          raw_data = message_content
+        else
+          timestamp = message_content['timestamp']
+          method = message_content['method_name'].to_sym
 
-        target = restore_object(message_content['target'])
-        arguments = message_content['arguments'].nil? ? [] :
-            message_content['arguments'].map{|arg|restore_object(arg)}
+          target = restore_object(message_content['target'])
+          arguments = message_content['arguments'].nil? ? [] :
+              message_content['arguments'].map{|arg|restore_object(arg)}
+        end
 
-        new(target, method, arguments, id: id, timestamp: timestamp, raw_message: raw_message)
+        new(
+            target: target, method_name: method, arguments: arguments,
+            id: id, timestamp: timestamp, original: raw_message,
+            raw_data: raw_data,
+        )
       end
 
-      def initialize(target, method_name, arguments = nil,
-          timestamp: (Time.now.to_f * 1000000).to_i, id: nil, raw_message: nil)
+      def initialize(target: nil, method_name: nil, arguments: nil,
+          timestamp: (Time.now.to_f * 1000000).to_i, id: nil, original: nil, raw_data: nil)
         @target       = target
         @method_name  = method_name.to_sym
         @arguments    = arguments
         @timestamp    = timestamp
         @id           = id
-        @raw_message  = raw_message
+        @original     = original
+        @raw_data     = raw_data
       end
 
       def to_h
+        return raw_data if raw_data
+
         {
             target: serialize_object(target),
             timestamp: timestamp,
