@@ -40,7 +40,7 @@ module Arsenicum
       end
 
       def to_h
-        return raw_data if raw_data
+        return raw_data.to_h if raw_data
 
         {
             target: serialize_object(target),
