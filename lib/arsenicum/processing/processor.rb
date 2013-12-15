@@ -8,8 +8,8 @@ module Arsenicum
       attr_reader :waiting_tasks, :concurrency, :current_concurrency, :queue, :logger
 
       def initialize(queue)
-        @mutex = Mutex.new
-        @watchdogs_mutex = Mutex.new
+        (@processor_mutex, @watchdogs_mutex, @workers_mutex, @tasks_mutex) = 4.times.map{|_|Mutex.new}
+
         @queue = queue
         @concurrency = queue.concurrency
         @logger = queue.logger
@@ -21,11 +21,9 @@ module Arsenicum
 
         Thread.new do
           loop do
-            (worker, task) = @mutex.synchronize do
-              next unless task = @waiting_tasks.shift
-              [@workers.shift, task]
-            end
-            worker ? worker.start_with(task) : sleep(0.1)
+            next sleep(0.1) unless task = @tasks_mutex.synchronize{@waiting_tasks.shift}
+            worker = @workers_mutex.synchronize{@workers.shift}
+            worker.start_with(task)
           end
         end
       end
@@ -34,7 +32,7 @@ module Arsenicum
         @main_thread = Thread.new do
           begin
             loop do
-              retrieved = @mutex.synchronize do
+              retrieved = @processor_mutex.synchronize do
                 next if full?
 
                 begin
@@ -68,29 +66,28 @@ module Arsenicum
       end
 
       def accept_replacement(worker: nil)
-        @mutex.synchronize do
-          @workers.push(worker)
-          @current_concurrency -= 1
-        end
+        @workers_mutex.synchronize{@workers.push(worker)}
       end
 
       private
       def push(request)
-        waiting_tasks << request
-        @current_concurrency += 1
+        @processor_mutex.synchronize do
+          @tasks_mutex.synchronize{waiting_tasks << request}
+          @current_concurrency += 1
+        end
       end
 
       def full?
-        current_concurrency == concurrency
+        current_concurrency >= concurrency
       end
 
       def complete
-        @mutex.synchronize{@current_concurrency -= 1}
+        @processor_mutex.synchronize{@current_concurrency -= 1}
       end
 
       def synchronize
         return unless block_given?
-        @mutex.synchronize{yield}
+        @processor_mutex.synchronize{yield}
       end
 
       def wait
@@ -150,7 +147,7 @@ module Arsenicum
       class Worker
         extend Forwardable
 
-        attr_reader   :thread, :request
+        attr_reader   :thread,  :task
         def_delegator :queue,   :@processor
 
 
@@ -191,13 +188,6 @@ module Arsenicum
         def run
           work.run
           work.handle_success
-        end
-
-        def interrupt
-          @mutex.synchronize do
-            return unless task
-            @thread.raise Timeout::Error
-          end
         end
 
         def start_with(task)
