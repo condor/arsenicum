@@ -37,7 +37,7 @@ module Arsenicum
     class << self
       attr_reader :instance
 
-      def configure(arg, &block)
+      def configure(arg, type = nil, &block)
         config_values =
             if block_given?
               value_holder = TopLevelValueHolder.new
@@ -46,14 +46,20 @@ module Arsenicum
             else
               case arg
                 when String
-                  if arg.end_with? '.rb'
-                    load arg
-                    nil # because config is expected to be finished in the loaded script.
-                  else
-                    YAML.load(File.read arg, encoding: 'UTF-8')
-                  end
+                  type_by_ext =
+                      case File.extname(arg)
+                        when '.rb'
+                          :rb
+                        when '.yaml', '.yml'
+                          :yml
+                        when '.json'
+                          :json
+                      end
+                  return File.open(arg){|f|configure f, type_by_ext} if type_by_ext
+
+                  parse arg, type
                 when IO
-                  YAML.load arg.read
+                  parse arg.read, type
                 when Hash
                   arg
                 else
@@ -65,6 +71,19 @@ module Arsenicum
         #   That script will call configure with block.
         @instance = new(config_values) if config_values
         @instance
+      end
+
+      private
+      def parse(object, type)
+        object = object.read if object.is_a? IO
+        case type
+          when :rb, :ruby
+            eval object
+          when :json
+            MultiJson.load object
+          when :yaml, :yml, NilClass
+            YAML.load object
+        end
       end
     end
 
