@@ -1,7 +1,7 @@
 require 'date'
 require 'time'
 
-module Arsenicum::Queueing::Serializer
+module Arsenicum::Serializer
   DATE_FORMAT = "%Y-%m-%d".freeze
   DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S %Z %z".freeze
 
