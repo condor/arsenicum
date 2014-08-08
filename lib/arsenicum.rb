@@ -5,7 +5,7 @@ module Arsenicum
   autoload :Mock,                   'arsenicum/mock'
   autoload :Processing,             'arsenicum/processing'
   autoload :Queue,                  'arsenicum/queue'
-  autoload :QueueImplementation,    'arsenicum/queue_implementation'
+  autoload :Backend, 'arsenicum/backend'
   autoload :Queueing,               'arsenicum/queueing'
   autoload :Sqs,                    'arsenicum/sqs'
   autoload :Syntax,                 'arsenicum/syntax'

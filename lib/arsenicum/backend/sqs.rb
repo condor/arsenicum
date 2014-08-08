@@ -1,5 +1,5 @@
 module Arsenicum
-  module Mock
+  module Sqs
     extend Arsenicum::Backend
   end
 end

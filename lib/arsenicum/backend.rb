@@ -1,6 +1,6 @@
 module Arsenicum
   # This module is expected to be extended only by modules
-  module QueueImplementation
+  module Backend
     def self.extended(mod)
       module_path = mod.name.split('::').map{|e|Arsenicum::Util.underscore(e)}.join('/')
       mod.instance_eval do

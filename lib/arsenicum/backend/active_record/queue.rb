@@ -1,8 +1,7 @@
 require 'aws-sdk'
 
-module Arsenicum::Sqs
+module Arsenicum::Backend::ActiveRecord
   class Queue < Arsenicum::Queue
-    attr_reader :sqs
     attr_reader :actual_name
 
     attr_reader :engine_config
