@@ -4,9 +4,13 @@ module Arsenicum
     def self.extended(mod)
       module_path = mod.name.split('::').map{|e|Arsenicum::Util.underscore(e)}.join('/')
       mod.instance_eval do
-        autoload :Queue, "#{module_path}/queue"
-        autoload :Configuration, "#{module_path}/configuration"
+        autoload :Configuration,  "#{module_path}/configuration"
+        autoload :Publisher,      "#{module_path}/publisher"
+        autoload :Subscriber,     "#{module_path}/subscriber"
       end
     end
   end
+
+  autoload  :Sqs,           'arsenicum/backend/sqs'
+  autoload  :ActiveRecord,  'arsenicum/backend/active_record'
 end
