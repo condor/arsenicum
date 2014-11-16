@@ -1,4 +1,4 @@
-module Arsenicum::Commands
+module Arsenicum::Core::Commands
   COMMAND_STOP = 0xff
   COMMAND_TASK = 0x10
 

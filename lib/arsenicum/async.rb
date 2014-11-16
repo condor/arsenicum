@@ -1,0 +1,2 @@
+module Arsenicum::Async
+end
