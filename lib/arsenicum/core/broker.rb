@@ -1,4 +1,6 @@
 class Arsenicum::Core::Broker
+  include Arsenicum::Core::IOHelper
+
   attr_reader :workers,  :available_workers, :mutex
 
   attr_reader :worker_count, :worker_options, :serializer, :tasks
@@ -20,6 +22,10 @@ class Arsenicum::Core::Broker
 
   def [](task_id)
     tasks[task_id.to_sym]
+  end
+
+  def []=(task_id, task)
+    tasks[task_id.to_sym] = task
   end
 
   def run
@@ -57,8 +63,9 @@ class Arsenicum::Core::Broker
       if worker.active?
         get_back_worker(worker)
       else
+        remove(worker)
+        prepare_worker
       end
-
     end
   end
 

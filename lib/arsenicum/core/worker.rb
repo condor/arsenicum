@@ -1,5 +1,6 @@
 class Arsenicum::Core::Worker
   include Arsenicum::Core::Commands
+  include Arsenicum::Core::IOHelper
 
   attr_reader :pid, :in_parent, :out_parent,
               :in_child,  :out_child, :active, :broker
@@ -14,35 +15,37 @@ class Arsenicum::Core::Worker
     (@in_child, @out_parent) = IO.pipe
 
     @pid = fork do
-      @active = true
       [in_parent, out_parent].each(&:close)
 
       begin
         loop do
-          command = in_child.read(1).unpack('C').first
+          command = read_code in_child
           case command
             when COMMAND_STOP
-              next
+              break
             when COMMAND_TASK
-              task_id_length = in_child.read(1).unpack('C').first
-              task_id_string = in_child.read task_id_length
-              task_id = task_id_string.to_sym
+              task_id_string  = read_string in_child
+              task_id         = task_id_string.to_sym
 
-              length = in_child.read(4).unpack('C4').each_with_index.inject(0) do |value, byte_with_index|
-                (byte, index) = byte_with_index
-                addition = byte << (3 - index)
-                value + addition
-              end
-              content = in_child.read length
-              parameters = serializer.deserialize content
+              content         = read_string in_child
+              parameters      = serializer.deserialize content
 
-              task = broker[task_id]
+              task            = broker[task_id]
 
               begin
                 task.run parameters
-                out_child.write "\u00"
+                write_code    out_child,  0
               rescue Exception => e
-                out_child.write "\u01"    # TODO implement.
+                exception_class_name = e.class.name
+                message = e.message
+
+                stacks = e.backtrace.join "\n"
+                stacks.force_encoding 'BINARY'
+
+                write_code    out_child,  1
+                write_string  out_child,  exception_class_name
+                write_string  out_child,  message
+                write_string  out_child,  stacks
               end
           end
         end
@@ -52,15 +55,19 @@ class Arsenicum::Core::Worker
         end
       end
     end
+    @active = true
     [in_child, out_child].each(&:close)
     pid
   end
 
-  def ask(task_id, parameters)
-
+  def ask(task_id, parameter)
+    write_code    out_parent, COMMAND_TASK
+    write_string  out_parent, task_id.to_s
+    write_string  serializer.serialize(parameter)
   end
 
   def terminate
-
+    write_code    out_parent, COMMAND_STOP
+    Process.waitpid pid
   end
 end
