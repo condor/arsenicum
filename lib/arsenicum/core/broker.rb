@@ -1,9 +1,11 @@
 class Arsenicum::Core::Broker
   include Arsenicum::Core::IOHelper
 
-  attr_reader :workers,     :available_workers, :mutex
+  attr_reader :router
 
+  attr_reader :workers,     :available_workers, :mutex
   attr_reader :worker_count, :worker_options, :tasks
+  attr_accessor :default_task
 
   PROCESSOR_COUNT_DEFAULT = 2
 
@@ -11,6 +13,7 @@ class Arsenicum::Core::Broker
     @worker_count = (options.delete(:worker_count) || PROCESSOR_COUNT_DEFAULT).to_i
     @mutex = Mutex.new
     @tasks = {}
+    @router = options.delete :router
 
     serializer = options[:serializer]  ||  Arsenicum::Serializer::JSON.new
     formatter  = options[:formatter]   ||  Arsenicum::Formatter.new
@@ -23,7 +26,7 @@ class Arsenicum::Core::Broker
   end
 
   def [](task_id)
-    tasks[task_id.to_sym]
+    tasks[task_id.to_sym] || default_task
   end
 
   def []=(task_id, task)
@@ -67,6 +70,11 @@ class Arsenicum::Core::Broker
         prepare_worker
       end
     end
+  end
+
+  def delegate(message)
+    (task_id, parameters) = router.route(message)
+    broker task_id, *parameters
   end
 
   def remove(worker)
