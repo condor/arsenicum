@@ -1,9 +1,11 @@
+require 'multi_json'
+
 class Arsenicum::Serializer::JSON
   def serialize(hash)
-    JSON(hash)
+    MultiJson.encode(hash)
   end
 
-  def deserilize(string)
-    JSON(string)
+  def deserialize(string)
+    MultiJson.decode(string)
   end
 end

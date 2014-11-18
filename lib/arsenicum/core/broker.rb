@@ -1,19 +1,21 @@
 class Arsenicum::Core::Broker
   include Arsenicum::Core::IOHelper
 
-  attr_reader :workers,  :available_workers, :mutex
+  attr_reader :workers,     :available_workers, :mutex
 
-  attr_reader :worker_count, :worker_options, :serializer, :tasks
+  attr_reader :worker_count, :worker_options, :tasks
 
   PROCESSOR_COUNT_DEFAULT = 2
 
   def initialize(options = {})
     @worker_count = (options.delete(:worker_count) || PROCESSOR_COUNT_DEFAULT).to_i
-
-    @worker_options = options.delete(:worker_options) || {}
-    @serializer = options[:serializer] || Arsenicum::Serializer::JSON.new
     @mutex = Mutex.new
     @tasks = {}
+
+    serializer = options[:serializer]  ||  Arsenicum::Serializer::JSON.new
+    formatter  = options[:formatter]   ||  Arsenicum::Formatter.new
+    @worker_options = options.delete(:worker_options) || {}
+    @worker_options.merge! serializer: serializer,  formatter: formatter
   end
 
   def register_task(task_id, task)
@@ -38,7 +40,7 @@ class Arsenicum::Core::Broker
   end
 
   def prepare_worker
-    worker = Arsenicum::Core::Worker.new(self, worker_options.merge(serializer: serializer))
+    worker = Arsenicum::Core::Worker.new(self, worker_options)
     stock(worker)
   end
 
@@ -57,7 +59,7 @@ class Arsenicum::Core::Broker
 
     begin
       worker.preprocess
-      worker.ask serialize(task_id: task_id, parameters: parameters)
+      worker.ask task_id, parameters
       worker.postprocess
     ensure
       if worker.active?

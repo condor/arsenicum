@@ -27,6 +27,16 @@ module Arsenicum
       end
     end
 
+    def constantize(klass, inside: Kernel)
+      if klass.to_s.start_with?('::')
+        klass = klass.to_s[2..-1].to_sym
+        inside = Kernel
+      end
+      klass.to_s.split('::').inject(inside) do |parent, const|
+        parent.const_get const.to_sym
+      end
+    end
+
     extend self
   end
 end

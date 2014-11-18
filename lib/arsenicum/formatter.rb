@@ -67,7 +67,7 @@ class Arsenicum::Formatter
     }
   end
 
-  def parse_object(value)
+  def parse(value)
     value = normalize_hash(value)
 
     return eval value[:value] if value[:type] == TYPE_RAW
