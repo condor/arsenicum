@@ -4,13 +4,19 @@ module Arsenicum
   class MisconfigurationError < StandardError;end
 
   class Configuration
+    attr_reader :pidfile_path,  :queue_configurations
+
+    def initialize
+      @pidfile_path = 'arsenicum.pid'
+    end
+
     def queue_configurations
       @queue_configurations ||= []
     end
 
-    def queue(name)
+    def queue(name, &block)
       queue_config = QueueConfiguration.new name
-      yield queue_config if block_given?
+      queue_config.instance_eval &block if block_given?
       queue_configurations << queue_config
     end
 
@@ -18,13 +24,54 @@ module Arsenicum
       @pidfile_path = path
     end
 
-    class QueueConfiguration
+    class InstanceConfiguration
       include Arsenicum::Util
 
-      attr_reader :name, :worker_count, :init_parameters, :queue_class
+      attr_reader :name, :init_parameters, :klass
+
+      class << self
+        attr_reader :inside
+        private
+        def namespace(mod)
+          @inside = mod
+        end
+      end
 
       def initialize(name)
         @name = name
+      end
+
+      def inside
+        self.class.inside
+      end
+
+      def type(type_name)
+        @klass = constantize(classify(type_name))
+      rescue NameError
+        @klass = constantize(classify(type_name), inside: inside)
+      end
+
+      def init_params(&block)
+        params = ConfigurationHash.new
+        if block
+          params.under_configuration do
+            params.instance_eval(&block)
+          end
+        end
+        @init_parameters = params
+      end
+
+      def build
+        klass.new(name, init_parameters)
+      end
+    end
+
+    class QueueConfiguration < Arsenicum::Configuration::InstanceConfiguration
+      attr_reader :worker_count,  :task_configurations
+      namespace Arsenicum::Async::Queue
+
+      def initialize(name)
+        super(name)
         @worker_count = 2
       end
 
@@ -32,21 +79,27 @@ module Arsenicum
         @worker_count = count
       end
 
-      def type(type_name)
-        @queue_class = constantize(classify(type_name))
-      rescue NameError
-        @queue_class = constantize(classify(type_name), inside: Arsenicum::Async::Queue)
+      def task_configurations
+        @task_configurations ||= []
       end
 
-      def init_params(&_)
-        params = ConfigurationHash.new
-        yield params if block_given?
-        @init_parameters = params
+      def task(name, &block)
+        task_config = TaskConfiguration.new name
+        task_config.instance_eval &block if block_given?
+        task_configurations << task_config
       end
 
-      def build_queue
-        queue_class.new(name, init_parameters)
+      def build
+        super.tap do |queue|
+          task_configurations.each do |task_config|
+            queue.register task_config.build
+          end
+        end
       end
+    end
+
+    class TaskConfiguration  < Arsenicum::Configuration::InstanceConfiguration
+      namespace Arsenicum::Task
     end
 
     class ConfigurationHash < Hash
@@ -61,14 +114,16 @@ module Arsenicum
         @in_configuration = false
       end
 
-      def method_missing(method_id, *args)
+      def method_missing(method_id, *args, &block)
         case args.length
           when 0
             return self[method_id] unless in_configuration?
 
             if block_given?
               new_value = ConfigurationHash.new
-              yield new_value
+              new_value.under_configuration do
+                new_value.instance_eval &block
+              end
               self[method_id] = new_value
             else
               self[method_id] ||= ConfigurationHash.new

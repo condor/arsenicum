@@ -9,6 +9,7 @@ module Arsenicum
   autoload  :Async,                 'arsenicum/async'
   autoload  :Main,                  'arsenicum/main'
   autoload  :IO,                    'arsenicum/io'
+  autoload  :Task,                  'arsenicum/task'
 
   class << self
     def configure(arg = nil, &block)

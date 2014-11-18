@@ -21,7 +21,7 @@ module Arsenicum
     end
 
     def classify(stringlike)
-      stringlike.split(/\/+/).map do |s|
+      stringlike.to_s.split(/\/+/).map do |s|
         camelcase(s)
       end.join('::')
     end

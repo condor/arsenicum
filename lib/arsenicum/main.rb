@@ -10,8 +10,12 @@ module Arsenicum
       File.open(config.pidfile_path, 'w:UTF-8') do |f|
         f.puts $$
       end
-      threads = config.build_queues.map(&:start_async)
-      threads.each(&:join)
+      threads = config.queue_configurations.map{|qc|qc.build.start_async}
+
+      begin
+        threads.each(&:join)
+      rescue Interrupt
+      end
     end
 
     module_function :run
