@@ -1,18 +1,16 @@
 require 'date'
 require 'time'
 
-module Arsenicum::Serializer
-  DATE_FORMAT = "%Y-%m-%d".freeze
-  DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S %Z %z".freeze
+class Arsenicum::Formatter
+  DATE_FORMAT = '%Y-%m-%d'.freeze
+  DATE_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S %Z %z'.freeze
 
   include Arsenicum::Util
 
-  def self.included(base)
-    base.__send__ :extend, self
-  end
-
-  def serialize_object(value)
-    serialize_object_specific(value) || serialize_object_default(value)
+  def format(value)
+    format_for_embedded_classes(value) ||
+        format_by_extension(value) ||
+        format_by_default(value)
   end
 
   TYPE_RAW      = 'raw'.freeze
@@ -23,7 +21,7 @@ module Arsenicum::Serializer
   TYPE_HASH     = 'hash'.freeze
   TYPE_ANY      = 'marshal'.freeze
 
-  def serialize_object_specific(value)
+  def format_for_embedded_classes(value)
     case value
       when Integer, Float, String, TrueClass, FalseClass, NilClass
         {
@@ -58,21 +56,27 @@ module Arsenicum::Serializer
     end
   end
 
-  def serialize_object_default(value)
+  def format_by_extension(value)
+    nil
+  end
+
+  def format_by_default(value)
     {
         type: TYPE_ANY,
         value: Marshal.dump(value).unpack('H*').first,
     }
   end
 
-  def restore_object(value)
+  def parse_object(value)
     value = normalize_hash(value)
 
     return eval value[:value] if value[:type] == TYPE_RAW
-    restore_object_specific(value) || restore_object_default(value)
+    parse_for_embedded_classes(value) ||
+        parse_by_extension(value) ||
+        parse_by_default(value)
   end
 
-  def restore_object_specific(value)
+  def parse_for_embedded_classes(value)
     case value[:type]
       when TYPE_DATE
         Date.strptime(value[:value], DATE_FORMAT)
@@ -93,42 +97,29 @@ module Arsenicum::Serializer
     end
   end
 
-  def restore_object_default(value)
-    Marshal.restore_object [value[:value]].pack('H*')
+  def parse_by_extension(_)
+    nil
   end
 
-  module WithActiveRecord
+  def parse_by_default(value)
+    ::Marshal.restore [value[:value]].pack('H*')
+  end
+
+  class ActiveRecord < ::Arsenicum::Formatter
     TYPE_ACTIVE_RECORD = 'active_record'.freeze
 
-    def self.included(base)
-      base.module_eval do
-        def serialize_object_specific_with_active_record(value)
-          serialize_object_specific_without_active_record(value) || serialize_object_active_record(value)
-        end
+    def format_by_extension(value)
+      return {
+          type: TYPE_ACTIVE_RECORD,
+          class: value.class.name,
+          id: value.id,
+      } if value.is_a? ActiveRecord::Base
+    end
 
-        def restore_object_specific_with_active_record(value)
-          restore_object_specific_without_active_record(value) || restore_object_active_record(value)
-        end
-
-        private
-        def serialize_object_active_record(value)
-          return {
-              type: TYPE_ACTIVE_RECORD,
-              class: value.class.name,
-              id: value.id,
-          } if value.is_a? ActiveRecord::Base
-        end
-
-        def restore_object_active_record(value)
-          if value[TYPE_CLASS] == TYPE_ACTIVE_RECORD
-            klass = const_get value[TYPE_CLASS].to_sym
-            klass.find value['id']
-          end
-        end
-
-        alias_method_chain :serialize_object_specific, :active_record
-        alias_method_chain :restore_object_specific, :active_record
-
+    def parse_by_extension(value)
+      if value[:type] == TYPE_ACTIVE_RECORD
+        klass = constaitize value[:class].to_sym
+        klass.find value[:id]
       end
     end
   end
