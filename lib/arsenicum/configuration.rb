@@ -14,10 +14,14 @@ module Arsenicum
       queue_configurations << queue_config
     end
 
+    def pidfile(path)
+      @pidfile_path = path
+    end
+
     class QueueConfiguration
       include Arsenicum::Util
 
-      attr_reader :name, :worker_count, :initialize_parameters
+      attr_reader :name, :worker_count, :init_parameters, :queue_class
 
       def initialize(name)
         @name = name
@@ -34,8 +38,14 @@ module Arsenicum
         @queue_class = constantize(classify(type_name), inside: Arsenicum::Async::Queue)
       end
 
-      def build_queue
+      def init_params(&_)
+        params = ConfigurationHash.new
+        yield params if block_given?
+        @init_parameters = params
+      end
 
+      def build_queue
+        queue_class.new(name, init_parameters)
       end
     end
 

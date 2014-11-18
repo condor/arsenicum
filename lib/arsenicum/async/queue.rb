@@ -16,5 +16,9 @@ class Arsenicum::Async::Queue < Arsenicum::Core::Broker
     end
   end
 
+  def start_async
+    Thread.new{start}
+  end
+
   autoload  :SQS, 'arsenicum/async/queue/sqs'
 end
