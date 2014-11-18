@@ -23,7 +23,7 @@ class Arsenicum::Formatter
 
   def format_for_embedded_classes(value)
     case value
-      when Integer, Float, String, TrueClass, FalseClass, NilClass
+      when Integer, Float, String, TrueClass, FalseClass, NilClass, Symbol
         {
             type: TYPE_RAW,
             value: value.inspect,
@@ -46,12 +46,12 @@ class Arsenicum::Formatter
       when Array
         {
             type: TYPE_ARRAY,
-            values: value.map{|v|serialize_object(v)},
+            values: value.map{|v|format(v)},
         }
       when Hash
         {
             type: TYPE_HASH,
-            values: value.inject({}){|h, kv|(k,v)=kv;h[k.to_s]=serialize_object(v);h},
+            values: value.inject({}){|h, kv|(k,v)=kv;h[k.to_s]=format(v);h},
         }
     end
   end
@@ -86,12 +86,12 @@ class Arsenicum::Formatter
         Module.const_get value[:value].to_sym
       when TYPE_ARRAY
         value[:values].map do |value|
-          restore_object(value)
+          parse(value)
         end
       when TYPE_HASH
         value[:values].inject({}) do |h, key_value|
           (key, value) = key_value
-          h[key.to_sym] = restore_object(key_value)
+          h[key.to_s.to_sym] = parse(value)
           h
         end
     end

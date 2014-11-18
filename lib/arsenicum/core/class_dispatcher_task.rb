@@ -1,4 +1,4 @@
-class Arsenicum::ClassDispatcherTask
+class Arsenicum::Core::ClassDispatcherTask < Arsenicum::Core::Task
   attr_reader :target_class,  :target_method
   private     :target_class,  :target_method
 

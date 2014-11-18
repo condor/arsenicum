@@ -1,4 +1,4 @@
-class Arsenicum::Task
+class Arsenicum::Core::Task
   attr_reader :id
 
   def initialize(id)

@@ -58,9 +58,7 @@ class Arsenicum::Core::Broker
     end
 
     begin
-      worker.preprocess
       worker.ask task_id, parameters
-      worker.postprocess
     ensure
       if worker.active?
         get_back_worker(worker)
@@ -83,7 +81,7 @@ class Arsenicum::Core::Broker
   end
 
   def get_back_worker(worker)
-    mutex.synchronize{available_workers << worker}
+    mutex.synchronize{available_workers[worker.pid] = worker}
   end
 
   def serialize(value = {})

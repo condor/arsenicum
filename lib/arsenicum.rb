@@ -8,6 +8,7 @@ module Arsenicum
   autoload  :Formatter,             'arsenicum/formatter'
   autoload  :Async,                 'arsenicum/async'
   autoload  :Main,                  'arsenicum/main'
+  autoload  :IO,                    'arsenicum/io'
 
   class << self
     def configure(arg = nil, &block)

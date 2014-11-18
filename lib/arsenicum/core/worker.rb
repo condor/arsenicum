@@ -23,34 +23,26 @@ class Arsenicum::Core::Worker
 
       begin
         loop do
-          command = read_code in_child
-          case command
-            when COMMAND_STOP
-              break
-            when COMMAND_TASK
-              task_id_string  = read_string in_child
-              task_id         = task_id_string.to_sym
+          begin
+            command = read_code in_child
+            break if command == COMMAND_STOP
+            task_id_string  = read_string in_child
+            content         = read_string in_child
+          rescue Arsenicum::IO::EOFException
+            # Interrupted request: No required GC.
+            break
+          end
 
-              content         = read_string in_child
-              parameters      = deserialize content
+          task_id         = task_id_string.to_sym
+          parameters      = deserialize content
+          task            = broker[task_id]
 
-              task            = broker[task_id]
-
-              begin
-                task.run parameters
-                write_code    out_child,  0
-              rescue Exception => e
-                exception_class_name = e.class.name
-                message = e.message
-
-                stacks = e.backtrace.join "\n"
-                stacks.force_encoding 'BINARY'
-
-                write_code    out_child,  1
-                write_string  out_child,  exception_class_name
-                write_string  out_child,  message
-                write_string  out_child,  stacks
-              end
+          begin
+            task.run parameters
+            write_code    out_child,  0
+          rescue Exception => e
+            write_code    out_child,  1
+            write_string  out_child,  Marshal.dump(e)
           end
         end
       ensure
@@ -67,7 +59,11 @@ class Arsenicum::Core::Worker
   def ask(task_id, parameter)
     write_code    out_parent, COMMAND_TASK
     write_string  out_parent, task_id.to_s
-    write_string  serialize(parameter)
+    write_string  out_parent, serialize(parameter)
+
+    result = read_code     in_parent
+    return if result == 0
+    raise Marshal.restore(read_string in_parent, encoding: 'BINARY')
   end
 
   def terminate
@@ -82,5 +78,13 @@ class Arsenicum::Core::Worker
 
   def deserialize(string)
     formatter.parse(serializer.deserialize(string))
+  end
+
+  def trap_signal
+    %w(TERM INT).each do |sig|
+      Signal.trap sig do
+        exit 5
+      end
+    end
   end
 end
