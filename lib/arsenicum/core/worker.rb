@@ -34,11 +34,13 @@ class Arsenicum::Core::Worker
           end
 
           task_id         = task_id_string.to_sym
-          parameters      = deserialize content
           task            = broker[task_id]
 
+          parameters      = deserialize content
+          parameters      = parameters if parameters.is_a? Hash
+
           begin
-            task.run parameters
+            task.run      *parameters
             write_code    out_child,  0
           rescue Exception => e
             write_code    out_child,  1
