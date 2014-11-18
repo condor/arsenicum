@@ -5,7 +5,7 @@ class Arsenicum::Core::Task
     @id = id
   end
 
-  def run(parameters)
+  def run(*parameters)
     # Originally do nothing. This will be overridden in the derived classes.
   end
 end

@@ -37,7 +37,6 @@ class Arsenicum::Core::Worker
           task            = broker[task_id]
 
           parameters      = deserialize content
-          parameters      = parameters if parameters.is_a? Hash
 
           begin
             task.run      *parameters
@@ -58,7 +57,7 @@ class Arsenicum::Core::Worker
     pid
   end
 
-  def ask(task_id, parameter)
+  def ask(task_id, *parameter)
     write_code    out_parent, COMMAND_TASK
     write_string  out_parent, task_id.to_s
     write_string  out_parent, serialize(parameter)

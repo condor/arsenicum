@@ -52,13 +52,13 @@ class Arsenicum::Core::Broker
     end
   end
 
-  def broker(task_id, parameters)
+  def broker(task_id, *parameters)
     until (worker = next_worker)
       sleep 0.5
     end
 
     begin
-      worker.ask task_id, parameters
+      worker.ask task_id, *parameters
     ensure
       if worker.active?
         get_back_worker(worker)

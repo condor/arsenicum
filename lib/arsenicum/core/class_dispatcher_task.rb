@@ -9,7 +9,7 @@ class Arsenicum::Core::ClassDispatcherTask < Arsenicum::Core::Task
   end
 
   def run(*parameters)
-    target_class.new.__send__ target_method, parameters
+    target_class.new.__send__ target_method, *parameters
   end
 
 end
