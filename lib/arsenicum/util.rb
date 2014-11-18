@@ -20,6 +20,12 @@ module Arsenicum
       end.to_sym
     end
 
+    def classify(stringlike)
+      stringlike.split(/\/+/).map do |s|
+        camelcase(s)
+      end.join('::')
+    end
+
     def underscore(stringlike)
       stringlike.to_s.dup.tap do |s|
         s.gsub!(/^([A-Z])/){$1.tap(&:downcase!)}

@@ -3,11 +3,11 @@ require 'multi_json'
 class Arsenicum::Async::Queue::SQS < Arsenicum::Async::Queue
   attr_reader :sqs_queue, :via_sns
 
-  def initialize(name, aws_account = {}, via_sns: false)
+  def initialize(name, options = {})
     super name
-    sqs = AWS::SQS.new aws_account
+    sqs = AWS::SQS.new options[:aws_account]
     @sqs_queue = sqs.queues.named(name)
-    @via_sns = !!via_sns
+    @via_sns = options[:via_sns]
   end
 
   def pick
