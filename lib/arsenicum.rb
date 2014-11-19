@@ -11,6 +11,7 @@ module Arsenicum
   autoload  :IO,                    'arsenicum/io'
   autoload  :Task,                  'arsenicum/task'
   autoload  :Routing,               'arsenicum/routing'
+  autoload  :Logger,                'arsenicum/logger'
 
   class << self
     def configure(arg = nil, &block)
