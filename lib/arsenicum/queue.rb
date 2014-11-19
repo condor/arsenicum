@@ -1,6 +1,7 @@
+require 'weakref'
+
 class Arsenicum::Queue
 
-  attr_accessor :broker
   attr_reader   :name,  :worker_count,  :router
   attr_reader   :broker
 
@@ -12,23 +13,28 @@ class Arsenicum::Queue
   end
 
   def start
+    Arsenicum::Logger.info "[queue]Queue #{name} is now starting"
     broker.run
+    Arsenicum::Logger.info "[queue]Queue #{name} start-up completed"
 
     loop do
-      (message, success_handler, failure_handler) = pick
+      (message, original_message) = pick
       next sleep(0.5) unless message
 
-      begin
-        broker.delegate message
-        success_handler.call if success_handler
-      rescue Exception => e
-        failure_handler.call(e) if failure_handler
-      end
+      broker.delegate message, -> { handle_success(original_message) }, -> e { handle_failure(e, original_message) }
     end
   end
 
   def register(task)
     broker[task.id] = task
+  end
+
+  def handle_success(original_message)
+    #TODO implement correctly in your derived classes.
+  end
+
+  def handle_failure(e, original_message)
+    #TODO implement correctly in your derived classes.
   end
 
   def start_async

@@ -13,13 +13,14 @@ class Arsenicum::Queue::Sqs < Arsenicum::Queue
   end
 
   def pick
-    message = sqs_queue.receive_message
+    message = sqs_message = sqs_queue.receive_message
     return unless message
-
     message = message.as_sns_message if via_sns
-    [
-        MultiJson.decode(message.body),
-      -> { message.delete },
-    ]
+
+    [MultiJson.decode(message.body), sqs_message]
+  end
+
+  def handle_success(original_message)
+    original_message.delete
   end
 end

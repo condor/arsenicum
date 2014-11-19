@@ -130,7 +130,7 @@ module Arsenicum
 
       def initialize
         @log_path   = STDOUT
-        @log_level  = Logger::INFO
+        @log_level  = :info
       end
 
       def path path
@@ -146,9 +146,10 @@ module Arsenicum
       end
 
       def build
-        logger = Logger.new(output_stream)
-        logger.level = Logger.const_get log_level.to_s.upcase.to_sym
+        logger = ::Logger.new(output_stream)
+        logger.level = ::Logger.const_get log_level.to_s.upcase.to_sym
         logger.formatter = log_format if log_format
+        logger
       end
 
       private

@@ -3,8 +3,8 @@ class Arsenicum::Core::Broker
 
   attr_reader   :router
 
-  attr_reader   :workers,     :available_workers, :mutex
-  attr_reader   :worker_count, :worker_options, :tasks
+  attr_reader   :workers,       :available_workers, :mutex
+  attr_reader   :worker_count,  :worker_options,    :tasks
   attr_accessor :default_task
 
   PROCESSOR_COUNT_DEFAULT = 2
@@ -38,26 +38,21 @@ class Arsenicum::Core::Broker
     prepare_workers
   end
 
-  def broker(task_id, *parameters)
-    until (worker = next_worker)
+  def broker(success_handler, failure_handler, task_id, *parameters)
+    worker = loop do
+      w = next_worker
+      break w if w
+
       sleep 0.5
     end
 
-    begin
-      worker.ask task_id, *parameters
-    ensure
-      if worker.active?
-        get_back_worker(worker)
-      else
-        remove(worker)
-        prepare_worker
-      end
-    end
+    Arsenicum::Logger.info { "[broker][Task brokering]id=#{task_id}, params=#{parameters.inspect}" }
+    worker.ask_async success_handler, failure_handler, task_id, *parameters
   end
 
-  def delegate(message)
+  def delegate(message, success_handler, failure_handler)
     (task_id, parameters) = router.route(message)
-    broker task_id, parameters
+    broker success_handler, failure_handler, task_id, parameters
   end
 
   def remove(worker)
@@ -74,6 +69,10 @@ class Arsenicum::Core::Broker
     available_workers.clear
 
     prepare_workers
+  end
+
+  def get_back_worker(worker)
+    mutex.synchronize{available_workers[worker.pid] = worker}
   end
 
   private
@@ -97,11 +96,10 @@ class Arsenicum::Core::Broker
   end
 
   def next_worker
-    mutex.synchronize{available_workers.shift.last}
-  end
-
-  def get_back_worker(worker)
-    mutex.synchronize{available_workers[worker.pid] = worker}
+    mutex.synchronize do
+      (_, worker) = available_workers.shift
+      worker
+    end
   end
 
   def serialize(value = {})
