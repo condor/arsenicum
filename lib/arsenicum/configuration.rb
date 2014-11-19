@@ -68,7 +68,7 @@ module Arsenicum
 
     class QueueConfiguration < Arsenicum::Configuration::InstanceConfiguration
       attr_reader :worker_count,  :router_class
-      namespace Arsenicum::Async::Queue
+      namespace Arsenicum::Queue
 
       def initialize(name)
         super(name)

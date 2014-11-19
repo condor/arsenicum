@@ -15,8 +15,8 @@ class Arsenicum::Core::Worker
   end
 
   def run
-    (@in_parent, @out_child) = IO.pipe
-    (@in_child, @out_parent) = IO.pipe
+    (@in_parent, @out_child) = open_binary_pipes
+    (@in_child, @out_parent) = open_binary_pipes
 
     @pid = fork do
       [in_parent, out_parent].each(&:close)
@@ -57,6 +57,12 @@ class Arsenicum::Core::Worker
     pid
   end
 
+  def open_binary_pipes
+    IO.pipe.each do |io|
+      io.set_encoding 'BINARY'
+    end
+  end
+
   def ask(task_id, *parameter)
     write_code    out_parent, COMMAND_TASK
     write_string  out_parent, task_id.to_s
@@ -67,7 +73,7 @@ class Arsenicum::Core::Worker
     raise Marshal.restore(read_string in_parent, encoding: 'BINARY')
   end
 
-  def terminate
+  def stop
     write_code    out_parent, COMMAND_STOP
     Process.waitpid pid
   end

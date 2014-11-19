@@ -3,7 +3,7 @@ module Arsenicum::Core::IOHelper
     string_to_write = string.dup
     string_to_write.force_encoding 'BINARY'
 
-    io.write [string.length].pack('N')
+    io.write [string.length].pack('N').force_encoding 'BINARY'
     io.write string
   end
 

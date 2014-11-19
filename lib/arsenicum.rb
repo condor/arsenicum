@@ -6,10 +6,11 @@ module Arsenicum
   autoload  :Version,               'arsenicum/version'
   autoload  :Serializer,            'arsenicum/serializer'
   autoload  :Formatter,             'arsenicum/formatter'
-  autoload  :Async,                 'arsenicum/async'
+  autoload  :Queue,                 'arsenicum/queue'
   autoload  :Main,                  'arsenicum/main'
   autoload  :IO,                    'arsenicum/io'
   autoload  :Task,                  'arsenicum/task'
+  autoload  :Routing,               'arsenicum/routing'
 
   class << self
     def configure(arg = nil, &block)

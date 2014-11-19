@@ -1,17 +1,19 @@
-class Arsenicum::Async::Queue < Arsenicum::Core::Broker
+class Arsenicum::Queue
 
   attr_accessor :broker
   attr_reader   :name,  :worker_count,  :router
   attr_reader   :broker
 
   def initialize(name, options)
-    @name = name
+    @name         = name
     @worker_count = options.delete(:worker_count)
     @router       = build_router options.delete(:router_class)
     @broker       = Arsenicum::Core::Broker.new worker_count: worker_count, router: router
   end
 
   def start
+    broker.run
+
     loop do
       (message, success_handler, failure_handler) = pick
       next sleep(0.5) unless message
@@ -25,7 +27,7 @@ class Arsenicum::Async::Queue < Arsenicum::Core::Broker
     end
   end
 
-  def register_task(task)
+  def register(task)
     broker[task.id] = task
   end
 
@@ -39,5 +41,5 @@ class Arsenicum::Async::Queue < Arsenicum::Core::Broker
     router_class.new self
   end
 
-  autoload  :Sqs, 'arsenicum/async/queue/sqs'
+  autoload  :Sqs, 'arsenicum/queue/sqs'
 end

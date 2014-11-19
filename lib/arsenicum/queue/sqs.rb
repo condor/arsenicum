@@ -1,7 +1,7 @@
 require 'aws-sdk'
 require 'multi_json'
 
-class Arsenicum::Async::Queue::Sqs < Arsenicum::Async::Queue
+class Arsenicum::Queue::Sqs < Arsenicum::Queue
   attr_reader :sqs_queue, :via_sns
 
   def initialize(name, options = {})
@@ -13,15 +13,13 @@ class Arsenicum::Async::Queue::Sqs < Arsenicum::Async::Queue
   end
 
   def pick
-    loop do
-      message = sqs_queue.receive_message
-      next sleep(0.5) unless message
+    message = sqs_queue.receive_message
+    return unless message
 
-      message = message.as_sns_message if via_sns
-      [
-          MultiJson.decode(message.body),
-        -> { message.delete },
-      ]
-    end
+    message = message.as_sns_message if via_sns
+    [
+        MultiJson.decode(message.body),
+      -> { message.delete },
+    ]
   end
 end

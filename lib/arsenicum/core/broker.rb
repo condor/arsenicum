@@ -1,10 +1,10 @@
 class Arsenicum::Core::Broker
   include Arsenicum::Core::IOHelper
 
-  attr_reader :router
+  attr_reader   :router
 
-  attr_reader :workers,     :available_workers, :mutex
-  attr_reader :worker_count, :worker_options, :tasks
+  attr_reader   :workers,     :available_workers, :mutex
+  attr_reader   :worker_count, :worker_options, :tasks
   attr_accessor :default_task
 
   PROCESSOR_COUNT_DEFAULT = 2
@@ -21,10 +21,6 @@ class Arsenicum::Core::Broker
     @worker_options.merge! serializer: serializer,  formatter: formatter
   end
 
-  def register_task(task_id, task)
-    tasks[task_id.to_sym] = task
-  end
-
   def [](task_id)
     tasks[task_id.to_sym] || default_task
   end
@@ -33,26 +29,13 @@ class Arsenicum::Core::Broker
     tasks[task_id.to_sym] = task
   end
 
+  alias_method :register, :[]=
+
   def run
     @workers = {}
     @available_workers = {}
 
-    @worker_count.times do
-      prepare_worker
-    end
-  end
-
-  def prepare_worker
-    worker = Arsenicum::Core::Worker.new(self, worker_options)
-    stock(worker)
-  end
-
-  def stock(worker)
-    mutex.synchronize do
-      pid = worker.run
-      workers[pid] = worker
-      available_workers[pid] = worker
-    end
+    prepare_workers
   end
 
   def broker(task_id, *parameters)
@@ -74,13 +57,42 @@ class Arsenicum::Core::Broker
 
   def delegate(message)
     (task_id, parameters) = router.route(message)
-    broker task_id, *parameters
+    broker task_id, parameters
   end
 
   def remove(worker)
     mutex.synchronize do
       workers.delete(worker.pid)
       available_workers.delete(worker.pid)
+    end
+  end
+
+  def reload
+    workers.each(&:stop)
+
+    workers.clear
+    available_workers.clear
+
+    prepare_workers
+  end
+
+  private
+  def prepare_workers
+    @worker_count.times do
+      prepare_worker
+    end
+  end
+
+  def prepare_worker
+    worker = Arsenicum::Core::Worker.new(self, worker_options)
+    stock(worker)
+  end
+
+  def stock(worker)
+    mutex.synchronize do
+      pid = worker.run
+      workers[pid] = worker
+      available_workers[pid] = worker
     end
   end
 
