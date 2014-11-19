@@ -4,14 +4,31 @@ module Arsenicum
   class MisconfigurationError < StandardError;end
 
   class Configuration
-    attr_reader :pidfile_path
+    attr_reader :pidfile_path, :daemon, :stdout_path, :stderr_path, :logger_config
 
     def initialize
-      @pidfile_path = 'arsenicum.pid'
+      @pidfile_path   = 'arsenicum.pid'
+      @logger_config  = LoggerConfiguration.new
     end
 
     def queue_configurations
       @queue_configurations ||= []
+    end
+
+    def daemonize
+      @daemon = true
+    end
+
+    def stdout(path)
+      @stdout_path = path
+    end
+
+    def stderr(path)
+      @stderr_path = path
+    end
+
+    def logger(&block)
+      logger_config.instance_eval &block
     end
 
     def queue(name, &block)
@@ -106,6 +123,40 @@ module Arsenicum
 
     class TaskConfiguration  < Arsenicum::Configuration::InstanceConfiguration
       namespace Arsenicum::Task
+    end
+
+    class LoggerConfiguration
+      attr_reader :log_path,  :log_level, :log_format
+
+      def initialize
+        @log_path   = STDOUT
+        @log_level  = Logger::INFO
+      end
+
+      def path path
+        @log_path = path
+      end
+
+      def level level
+        @log_level = level
+      end
+
+      def format &format
+        @log_format = format
+      end
+
+      def build
+        logger = Logger.new(output_stream)
+        logger.level = Logger.const_get log_level.to_s.upcase.to_sym
+        logger.formatter = log_format if log_format
+      end
+
+      private
+      def output_stream
+        return log_path if log_path.respond_to? :write
+        return File.open(log_path,  'w:UTF-8') if log_path.is_a? String
+        STDOUT
+      end
     end
 
     class ConfigurationHash < Hash
