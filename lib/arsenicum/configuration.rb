@@ -1,235 +1,143 @@
 require 'logger'
 
 module Arsenicum
+  class MisconfigurationError < StandardError;end
+
   class Configuration
-    module ConfiguredByHash
+    attr_reader :pidfile_path,  :queue_configurations
 
-      def self.included(base)
-        base.extend ClassMethods
-      end
+    def initialize
+      @pidfile_path = 'arsenicum.pid'
+    end
 
-      def initialize(hash)
-        configure(hash)
-      end
+    def queue_configurations
+      @queue_configurations ||= []
+    end
 
-      private
-      def configure(hash)
-        self.class.config_keys.each do |key|
-          instance_variable_set :"@#{key}", hash[key]
-        end
-      end
+    def queue(name, &block)
+      queue_config = QueueConfiguration.new name
+      queue_config.instance_eval &block if block_given?
+      queue_configurations << queue_config
+    end
 
-      module ClassMethods
-        attr_accessor :config_keys
+    def pidfile(path)
+      @pidfile_path = path
+    end
+
+    class InstanceConfiguration
+      include Arsenicum::Util
+
+      attr_reader :name, :init_parameters, :klass
+
+      class << self
+        attr_reader :inside
         private
-        def attr_config(*attrs)
-          @config_keys = Array(attrs)
-          @config_keys.each{|key|attr_reader key}
+        def namespace(mod)
+          @inside = mod
+        end
+      end
+
+      def initialize(name)
+        @name = name
+      end
+
+      def inside
+        self.class.inside
+      end
+
+      def type(type_name)
+        @klass = constantize(classify(type_name))
+      rescue NameError
+        @klass = constantize(classify(type_name), inside: inside)
+      end
+
+      def init_params(&block)
+        params = ConfigurationHash.new
+        if block
+          params.under_configuration do
+            params.instance_eval(&block)
+          end
+        end
+        @init_parameters = params
+      end
+
+      def build
+        klass.new(name, init_parameters)
+      end
+    end
+
+    class QueueConfiguration < Arsenicum::Configuration::InstanceConfiguration
+      attr_reader :worker_count,  :task_configurations
+      namespace Arsenicum::Async::Queue
+
+      def initialize(name)
+        super(name)
+        @worker_count = 2
+      end
+
+      def workers(count)
+        @worker_count = count
+      end
+
+      def task_configurations
+        @task_configurations ||= []
+      end
+
+      def task(name, &block)
+        task_config = TaskConfiguration.new name
+        task_config.instance_eval &block if block_given?
+        task_configurations << task_config
+      end
+
+      def build
+        super.tap do |queue|
+          task_configurations.each do |task_config|
+            queue.register task_config.build
+          end
         end
       end
     end
 
-    include Arsenicum::Util
-
-    attr_accessor :queue_configs, :engine_config, :queue_class, :logger,
-                  :post_office, :server
-
-    class << self
-      attr_reader :instance
-
-      def configure(arg, type = nil, &block)
-        config_values =
-            if block_given?
-              value_holder = TopLevelValueHolder.new
-              value_holder.instance_eval(&block)
-              value_holder.to_h
-            else
-              case arg
-                when String
-                  type_by_ext =
-                      case File.extname(arg)
-                        when '.rb'
-                          :rb
-                        when '.yaml', '.yml'
-                          :yml
-                        when '.json'
-                          :json
-                      end
-                  return File.open(arg){|f|configure f, type_by_ext} if type_by_ext
-
-                  parse arg, type
-                when IO
-                  parse arg.read, type
-                when Hash
-                  arg
-                else
-                  raise ArgumentError, 'configure should be called: with arg - any of [String(config file path), IO, Hash] - , or block'
-              end
-            end
-        # The case where the config values is nil occurs only given arg is '*.rb',
-        #   which means that config by Ruby script is expected to be completed in the script.
-        #   That script will call configure with block.
-        @instance = new(config_values) if config_values
-        @instance
-      end
-
-      private
-      def parse(object, type)
-        object = object.read if object.is_a? IO
-        case type
-          when :rb, :ruby
-            eval object
-          when :json
-            MultiJson.load object
-          when :yaml, :yml, NilClass
-            YAML.load object
-        end
-      end
+    class TaskConfiguration  < Arsenicum::Configuration::InstanceConfiguration
+      namespace Arsenicum::Task
     end
 
-    def initialize(values)
-      configs = {}
-
-      normalize_hash(values).each do |key, value|
-        case key
-          when :server
-            @server = ServerConfiguration.new(value)
-          when :log_file
-            @logger = Logger.new(value)
-            @logger.formatter = @log_formatter if @log_formatter
-          when :log_format
-            @log_formatter = -> severity, datetime, program_name, message { value.freeze }
-            @logger.formatter = @log_formatter
-          when :queues
-            @queue_configs = value.inject({}) do |h, kv|
-              (queue_name, queue_config) = kv
-              h.tap do |i|
-                i.merge! queue_name => QueueConfiguration.new(queue_name, queue_config)
-              end
-            end
-          when :engine
-            @engine = value.to_sym
-            @engine_namespace = Arsenicum.const_get(camelcase(@engine))
-            @queue_class = @engine_namespace.const_get(:Queue)
-            @engine_config_class = @engine_namespace.const_get(:Configuration)
-            @engine_config = @engine_config_class.new(configs[@engine]) if configs[@engine]
-          when @engine
-            @engine_config = @engine_config_class.new(value)
-          else
-            configs[key] = value
-        end
-      end
-      @logger ||= Logger.new(STDOUT)
-
-      @queue_configs ||= {}
-      @queue_configs.merge!(default: QueueConfiguration::Default) unless
-          @queue_configs.include?(:default)
-
-      @post_office = Queueing::PostOffice.new self
-    end
-
-    class QueueConfiguration
-      include ConfiguredByHash
-      attr_reader :queue_name
-      attr_config :methods, :classes, :concurrency, :timeout, :message_raw, :handler
-      alias_method :message_raw?, :message_raw
-
-      DEFAULT_CONCURRENCY = 2
-
-      def initialize(queue_name, queue_config = {})
-        @queue_name = queue_name
-        configure(queue_config)
-        @concurrency ||= DEFAULT_CONCURRENCY
+    class ConfigurationHash < Hash
+      def in_configuration?
+        @in_configuration
       end
 
-      Default = new(:default)
-    end
-
-    class ServerConfiguration
-      include ConfiguredByHash
-
-      attr_config :background, :pidfile, :working_directory, :environment
-    end
-
-    class ValueHolder < BasicObject
-      attr_reader :values
-      private     :values
-
-      def initialize
-        @values = {}
-      end
-
-      def to_h
-        values.dup
+      def under_configuration(&_)
+        @in_configuration = true
+        yield if block_given?
+      ensure
+        @in_configuration = false
       end
 
       def method_missing(method_id, *args, &block)
-        method_name = method_id.to_s
-        return __send__(method_name[0...-1].to_sym, *args) if method_name[-1] == '='
+        case args.length
+          when 0
+            return self[method_id] unless in_configuration?
 
-        if block
-          value_holder = ::Arsenicum::Configuration::ValueHolder.new
-          value_holder.instance_eval(&block)
-          return values[method_id] = value_holder.to_h
-        end
-
-        if method_name.start_with? 'add_'
-          attr = method_name[4..-1].to_sym
-          if value[attr]
-            case value[attr]
-              when Array
-                raise ::ArgumentError, "The treatment of attribute #{attr} is confused" if args.count != 1
-                value[attr] << args.shift
-              when Hash
-                raise ::ArgumentError, "The treatment of attribute #{attr} is confused" if args.count != 2
-                value[attr][args[0].to_sym] = args[1]
-              else
-                raise "#{attr} is already defined as scalar even if it would be added"
+            if block_given?
+              new_value = ConfigurationHash.new
+              new_value.under_configuration do
+                new_value.instance_eval &block
+              end
+              self[method_id] = new_value
+            else
+              self[method_id] ||= ConfigurationHash.new
             end
-            return value[attr]
+          when 1
+            if (method_name = method_id.to_s)[-1] == '='
+              return self[method_name[0...-1].to_sym] = args.first
+            end
+
+            self[method_id] = args.first
           else
-            case args.count
-              when 1
-                value[attr] = [args.shift]
-              when 2
-                value[attr] = {args[0].to_sym => args[1]}
-              else
-                raise ::ArgumentError, "#{method_id} should be called with 1 or 2 argument(s)."
-            end
-          end
-          return value[attr]
+            super
         end
-
-        return values[method_id] = args.shift if args.size > 0
-
-        return values[method_id]
       end
     end
-
-    class QueueValueHolder < ValueHolder
-      def classes(*args)
-        values[:classes] ||= ::Set.new
-        values[:classes] += args.map(&:to_s)
-      end
-
-      def methods(*args)
-        values[:methods] ||= ::Set.new
-        values[:methods] += args.map(&:to_s)
-      end
-    end
-
-    class TopLevelValueHolder < ValueHolder
-      def queue(name, &block)
-        raise ::ArgumentError, 'queue must be accompanied with block' unless block
-        queue_value_holder = QueueValueHolder.new
-        queue_value_holder.instance_eval(&block)
-
-        values[:queues] ||= {}
-        values[:queues][name.to_sym] = queue_value_holder.to_h
-      end
-    end
-
   end
-
-  class MisconfigurationError < StandardError;end
 end
