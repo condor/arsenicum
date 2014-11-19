@@ -7,7 +7,7 @@ class Arsenicum::Async::Queue < Arsenicum::Core::Broker
   def initialize(name, options)
     @name = name
     @worker_count = options.delete(:worker_count)
-    @router       = options.delete(:router)
+    @router       = build_router options.delete(:router_class)
     @broker       = Arsenicum::Core::Broker.new worker_count: worker_count, router: router
   end
 
@@ -31,6 +31,12 @@ class Arsenicum::Async::Queue < Arsenicum::Core::Broker
 
   def start_async
     Thread.new{start}
+  end
+
+  private
+  def build_router(router_class)
+    return unless router_class
+    router_class.new self
   end
 
   autoload  :Sqs, 'arsenicum/async/queue/sqs'

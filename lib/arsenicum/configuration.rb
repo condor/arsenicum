@@ -4,7 +4,7 @@ module Arsenicum
   class MisconfigurationError < StandardError;end
 
   class Configuration
-    attr_reader :pidfile_path,  :queue_configurations
+    attr_reader :pidfile_path
 
     def initialize
       @pidfile_path = 'arsenicum.pid'
@@ -67,12 +67,18 @@ module Arsenicum
     end
 
     class QueueConfiguration < Arsenicum::Configuration::InstanceConfiguration
-      attr_reader :worker_count,  :task_configurations
+      attr_reader :worker_count,  :router_class
       namespace Arsenicum::Async::Queue
 
       def initialize(name)
         super(name)
         @worker_count = 2
+      end
+
+      def router(name)
+        @router_class = constantize(classify(name))
+      rescue NameError
+        @router_class = constantize(classify(name), inside: Arsenicum::Routing)
       end
 
       def workers(count)
@@ -90,7 +96,7 @@ module Arsenicum
       end
 
       def build
-        super.tap do |queue|
+        klass.new(name, init_parameters.merge(router_class: router_class)).tap do |queue|
           task_configurations.each do |task_config|
             queue.register task_config.build
           end
