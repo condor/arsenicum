@@ -10,7 +10,7 @@ module Arsenicum
       config.instance_eval script, config_file, 1
 
       if config.daemon
-        Process.daemon
+        Process.daemon  true, true
 
         File.open(config.pidfile_path, 'w:UTF-8') do |f|
           f.puts $$
@@ -21,7 +21,6 @@ module Arsenicum
       configure_log config
 
       threads = config.queue_configurations.map{|qc|qc.build.start_async}
-
       begin
         threads.each(&:join)
       rescue Interrupt
