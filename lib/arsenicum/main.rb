@@ -8,7 +8,7 @@ module Arsenicum
       config.instance_eval script, config_file, 1
 
       if config.daemon
-        Process.daemonize
+        Process.daemon
 
         File.open(config.pidfile_path, 'w:UTF-8') do |f|
           f.puts $$
