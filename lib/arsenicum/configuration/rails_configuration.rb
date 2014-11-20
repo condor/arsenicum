@@ -1,4 +1,4 @@
-class Arsenicum::Coniguration::RailsConfiguration < Arsenicum::Configuration
+class Arsenicum::Configuration::RailsConfiguration < Arsenicum::Configuration
   attr_reader :rails_env
 
   def initialize(*)
