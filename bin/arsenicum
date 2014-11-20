@@ -1,7 +1,5 @@
 #!/usr/bin/env ruby
 
 require 'arsenicum'
-require 'optparse'
-require 'yaml'
 
 Arsenicum::CLI.new(ARGV).boot

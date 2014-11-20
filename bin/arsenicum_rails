@@ -2,4 +2,4 @@
 
 require 'arsenicum'
 
-Arsenicum::CLI::Rails.new(ARGV).boot
+Arsenicum::CLI::RailsCLI.new(ARGV).boot
