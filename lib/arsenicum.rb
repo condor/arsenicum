@@ -12,16 +12,5 @@ module Arsenicum
   autoload  :Task,                  'arsenicum/task'
   autoload  :Routing,               'arsenicum/routing'
   autoload  :Logger,                'arsenicum/logger'
-
-  class << self
-    def configure(arg = nil, &block)
-      Arsenicum::Configuration.configure arg, &block
-    end
-
-    def configuration
-      Configuration.instance
-    end
-
-    alias_method :config, :configuration
-  end
+  autoload  :CLI,                   'arsenicum/cli'
 end
