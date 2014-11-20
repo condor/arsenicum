@@ -1,6 +1,8 @@
 module Arsenicum
   module Main
     def run(config_file)
+      $0 = 'arsenicum[main]'
+
       config = Arsenicum::Configuration.new
       config_file = File.expand_path config_file
 

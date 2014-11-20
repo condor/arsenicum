@@ -5,11 +5,12 @@ class Arsenicum::Core::Worker
   include Arsenicum::Core::IOHelper
 
   attr_reader :pid, :in_parent, :out_parent, :thread,
-              :in_child,  :out_child, :active, :broker, :serializer,  :formatter
+              :in_child,  :out_child, :active, :broker, :serializer,  :formatter, :index
   alias_method :active?, :active
 
-  def initialize(broker, worker_configuration)
+  def initialize(broker, index, worker_configuration)
     @broker     = WeakRef.new broker # avoiding circular references.
+    @index      = index
     @serializer = worker_configuration[:serializer]
     @formatter  = worker_configuration[:formatter]
     @thread     = InvokerThread.new(self)
@@ -20,6 +21,7 @@ class Arsenicum::Core::Worker
     (@in_child, @out_parent) = open_binary_pipes
 
     @pid = fork do
+      $0 = "arsenicum[worker][#{index}]"
       [in_parent, out_parent].each(&:close)
 
       begin

@@ -72,18 +72,27 @@ class Arsenicum::Core::Broker
   end
 
   def get_back_worker(worker)
-    mutex.synchronize{available_workers[worker.pid] = worker}
+    mutex.synchronize{
+      if worker.active?
+        available_workers[worker.pid] = worker
+      else
+        next_index = workers.count
+        remove worker
+        worker.stop
+        prepare_worker next_index
+      end
+    }
   end
 
   private
   def prepare_workers
-    @worker_count.times do
-      prepare_worker
+    @worker_count.times do |i|
+      prepare_worker i
     end
   end
 
-  def prepare_worker
-    worker = Arsenicum::Core::Worker.new(self, worker_options)
+  def prepare_worker index
+    worker = Arsenicum::Core::Worker.new(self, index, worker_options)
     stock(worker)
   end
 
