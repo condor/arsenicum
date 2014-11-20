@@ -4,11 +4,12 @@ module Arsenicum
   class MisconfigurationError < StandardError;end
 
   class Configuration
-    attr_reader :pidfile_path, :daemon, :stdout_path, :stderr_path, :logger_config
+    attr_reader :pidfile_path, :daemon, :stdout_path, :stderr_path, :logger_config, :working_directory
 
     def initialize
       @pidfile_path   = 'arsenicum.pid'
       @logger_config  = LoggerConfiguration.new
+      @working_directory    = '.'
     end
 
     def queue_configurations
@@ -39,6 +40,10 @@ module Arsenicum
 
     def pidfile(path)
       @pidfile_path = path
+    end
+
+    def directory(path)
+      @working_directory = path
     end
 
     class InstanceConfiguration
@@ -197,5 +202,7 @@ module Arsenicum
         end
       end
     end
+
+    autoload  :RailsConfiguration, 'arsenicum/configuration/rails_configuration'
   end
 end
