@@ -1,13 +1,7 @@
 module Arsenicum
-  module Main
-    def run(config_file)
+  class Main
+    def run(config)
       $0 = 'arsenicum[main]'
-
-      config = Arsenicum::Configuration.new
-      config_file = File.expand_path config_file
-
-      script = File.read config_file
-      config.instance_eval script, config_file, 1
 
       if config.daemon
         Process.daemon  true, true
@@ -17,8 +11,12 @@ module Arsenicum
         end
       end
 
+      Dir.chdir     config.working_directory
+
       configure_io  config
       configure_log config
+
+      before_boot(config)
 
       threads = config.queue_configurations.map{|qc|qc.build.start_async}
       begin
@@ -40,10 +38,14 @@ module Arsenicum
       end
     end
 
+    def before_boot(config)
+
+    end
+
     def configure_log(config)
       Arsenicum::Logger.configure config.logger_config
     end
 
-    module_function :run, :configure_io,  :configure_log
+    autoload  :RailsMain, 'arsenicum/main/rails_main'
   end
 end
