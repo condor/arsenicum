@@ -7,7 +7,7 @@ class Arsenicum::CLI
   def initialize(arguments)
     @arguments = arguments
     @configuration = create_configuration
-    parse_options
+    parse_options arguments
   end
 
   def boot
@@ -23,8 +23,8 @@ class Arsenicum::CLI
     Arsenicum::Main.new
   end
 
-  def parse_options
-    OptionParser.new(&method(:handle_options))
+  def parse_options(arguments)
+    OptionParser.new(&method(:handle_options)).parse!(arguments)
   end
 
   def handle_options(opt)
@@ -38,8 +38,12 @@ class Arsenicum::CLI
       configuration.daemonize
     end
 
-    opt.on '-o', '--stdout=[PATH]' do |v|
-      configuration.stdout = v unless v == true
+    opt.on '--stdout=PATH' do |v|
+      configuration.stdout    v
+    end
+
+    opt.on '--stderr=PATH' do |v|
+      configuration.stderr    v
     end
   end
 
