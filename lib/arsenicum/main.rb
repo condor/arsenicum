@@ -38,9 +38,7 @@ module Arsenicum
       end
     end
 
-    def before_boot(config)
-
-    end
+    def before_boot(config);end
 
     def configure_log(config)
       Arsenicum::Logger.configure config.logger_config
