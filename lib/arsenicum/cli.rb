@@ -1,3 +1,5 @@
+require 'optparse'
+
 class Arsenicum::CLI
   autoload  :RailsCLI, 'arsenicum/cli/rails_cli'
 

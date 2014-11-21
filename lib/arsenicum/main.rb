@@ -1,5 +1,7 @@
 module Arsenicum
   class Main
+    attr_reader :queues
+
     def run(config)
       $0 = 'arsenicum[main]'
 
@@ -18,8 +20,12 @@ module Arsenicum
 
       before_boot(config)
 
-      threads = config.queue_configurations.map{|qc|qc.build.start_async}
+      @queues = config.queue_configurations.map{|qc|qc.build}
+      threads = @queues.map(&:start_async)
       begin
+        sleep 10
+        trap_signal
+
         threads.each(&:join)
       rescue Interrupt
       end
@@ -42,6 +48,13 @@ module Arsenicum
 
     def configure_log(config)
       Arsenicum::Logger.configure config.logger_config
+    end
+
+    def trap_signal
+      [:TERM, :INT,].each do |sig|
+        queues.each(&:stop)
+        exit 1
+      end
     end
 
     autoload  :RailsMain, 'arsenicum/main/rails_main'

@@ -10,9 +10,9 @@ module Arsenicum::Logger
 
     [:debug, :info, :warn, :error, :fatal].each do |method|
       eval <<-METHOD, binding, __FILE__, __LINE__ + 1
-        def #{method}(*args, &block)
+        def #{method}(&block)
           return unless logger
-          logger.#{method}(*args, &block)
+          logger.#{method} &block
         end
       METHOD
     end

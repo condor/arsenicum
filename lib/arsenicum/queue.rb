@@ -13,16 +13,26 @@ class Arsenicum::Queue
   end
 
   def start
-    Arsenicum::Logger.info "[queue]Queue #{name} is now starting"
+    Arsenicum::Logger.info{"[queue]Queue #{name} is now starting"}
     broker.run
-    Arsenicum::Logger.info "[queue]Queue #{name} start-up completed"
+    Arsenicum::Logger.info{"[queue]Queue #{name} start-up completed"}
 
     loop do
-      (message, original_message) = pick
+      begin
+        (message, original_message) = pick
+      rescue => e
+        handle_failure e, original_message
+        next
+      end
+
       next sleep(0.5) unless message
 
       broker.delegate message, -> { handle_success(original_message) }, -> e { handle_failure(e, original_message) }
     end
+  end
+
+  def stop
+    broker.stop
   end
 
   def register(task)
