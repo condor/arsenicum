@@ -27,9 +27,9 @@ class Arsenicum::Core::Worker
       begin
         loop do
           begin
-            Arsenicum::Logger.debug {log_message_for 'to read initial command'}
+            Arsenicum::Logger.debug {log_message_for '[child]to read initial command'}
             command = read_code in_child
-            Arsenicum::Logger.debug {log_message_for 'Command: 0x%02x' % command}
+            Arsenicum::Logger.debug {log_message_for '[child]Command: 0x%02x' % command}
             break if command == COMMAND_STOP
             task_id_string  = read_string in_child
             content         = read_string in_child
@@ -44,9 +44,13 @@ class Arsenicum::Core::Worker
           parameters      = deserialize content
 
           begin
+            Arsenicum::Logger.info {log_message_for "[child]Task start"}
+            Arsenicum::Logger.info {log_message_for "[child]Parameters: #{parameters.inspect}"
             task.run      *parameters
+            Arsenicum::Logger.info {log_message_for "[child]Task success"}
             write_code    out_child,  0
           rescue Exception => e
+            Arsenicum::Logger.error {log_message_for "[child]Task Failure with #{e.class.name}#{":#{e.message}" if e.message}"}
             write_code    out_child,  1
             write_string  out_child,  Marshal.dump(e)
           end
