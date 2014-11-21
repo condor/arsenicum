@@ -67,6 +67,9 @@ class Arsenicum::Core::Worker
   end
 
   def stop
+    thread.terminate
+    return if Process.waitpid pid, Process::WNOHANG
+
     write_message   ctrl_out_parent, COMMAND_STOP
     Process.waitpid pid
   end
@@ -88,6 +91,13 @@ class Arsenicum::Core::Worker
       [in_child, out_child, ctrl_in_child, ctrl_out_child].each do |io|
         begin io.close rescue nil end
       end
+    end
+  end
+
+  def active?
+    case state
+      when :waiting, :busy
+        true
     end
   end
 
@@ -141,7 +151,8 @@ class Arsenicum::Core::Worker
       control, = read_message ctrl_in_child
       case control
         when CONTROL_STOP
-          thread.stop
+          info message: '[Control]Received stop command.'
+          thread.terminate
           switch_state  :stopped
       end
     end
@@ -205,13 +216,21 @@ class Arsenicum::Core::Worker
     def initialize(worker)
       super do
         loop do
-          next sleep(0.5) unless task_request
+          begin
+            next sleep(0.5) unless task_request
+          rescue Interrupt
+            break
+          end
           (success_handler, failure_handler, task_id, parameter) = task_request
 
           begin
             worker.ask task_id, *parameter
             info worker, message: "Completed processing: #{task_id}"
             success_handler.call
+          rescue Interrupt => e
+            error worker, exception: e
+            failure_handler.call e
+            break
           rescue Exception => e
             error worker, exception: e
             failure_handler.call e

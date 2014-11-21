@@ -52,8 +52,11 @@ module Arsenicum
 
     def trap_signal
       [:TERM, :INT,].each do |sig|
-        queues.each(&:stop)
-        exit 1
+        Signal.trap sig do
+puts "signal received"
+          queues.each(&:stop)
+          exit 1
+        end
       end
     end
 

@@ -55,6 +55,10 @@ class Arsenicum::Core::Broker
     broker success_handler, failure_handler, task_id, parameters
   end
 
+  def stop
+    workers.values.map(&:stop)
+  end
+
   def remove(worker)
     mutex.synchronize do
       workers.delete(worker.pid)
@@ -63,7 +67,7 @@ class Arsenicum::Core::Broker
   end
 
   def reload
-    workers.each(&:stop)
+    workers.values.each(&:stop)
 
     workers.clear
     available_workers.clear
