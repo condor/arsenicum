@@ -4,8 +4,8 @@ module Arsenicum::Logger
   class << self
     attr_reader :logger
 
-    def configure(logger_config)
-      @logger = logger_config.build
+    def set_logger(logger)
+      @logger = logger
     end
 
     [:debug, :info, :warn, :error, :fatal].each do |method|
