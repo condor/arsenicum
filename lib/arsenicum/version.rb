@@ -1,3 +1,3 @@
 module Arsenicum
-  VERSION = '0.3.1.2'
+  VERSION = '0.4'
 end
