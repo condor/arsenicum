@@ -25,9 +25,12 @@ class Arsenicum::Queue
         next
       end
 
-      next sleep(0.5) unless message
+      unless message
+        sleep(0.5)
+        next
+      end
 
-      Arsenicum::Logger.debug   "Queue picked. message: #{message.inspect}"
+      Arsenicum::Logger.info{"Queue picked. message: #{message.inspect}"}
       broker.delegate message, -> { handle_success(original_message) }, -> e { handle_failure(e, original_message) }
     end
   end
