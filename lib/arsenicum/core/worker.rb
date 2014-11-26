@@ -27,28 +27,14 @@ class Arsenicum::Core::Worker
     @thread     = InvokerThread.new(self)
     @work_at    = :parent
     @state      = :parent
+
+    run
   end
 
-  def run
-    (@in_parent, @out_child)            = open_binary_pipes
-    (@in_child, @out_parent)            = open_binary_pipes
-    (@ctrl_in_parent, @ctrl_out_child)  = open_binary_pipes
-    (@ctrl_in_child,  @ctrl_out_parent) = open_binary_pipes
+  def ==(another)
+    return false unless another.is_a? ::Arsenicum::Core::Worker
 
-    @pid = fork &method(:run_in_child)
-    return unless @pid
-
-    @active = true
-    [in_child, out_child, ctrl_in_child, ctrl_out_child].each(&:close)
-    pid
-  end
-
-  def open_binary_pipes
-    IO.pipe.each do |io|
-      io.set_encoding 'BINARY'
-    end.tap do |pipes|
-      pipes.last.sync = true
-    end
+    return another.pid == self.pid
   end
 
   def ask(task_id, *parameters)
@@ -76,7 +62,40 @@ class Arsenicum::Core::Worker
     Process.waitpid pid
   end
 
+  def active?
+    case state
+      when :waiting, :busy
+        true
+    end
+  end
+
+  def return_to_broker
+    broker.get_back_worker self
+  end
+
   private
+  def run
+    (@in_parent, @out_child)            = open_binary_pipes
+    (@in_child, @out_parent)            = open_binary_pipes
+    (@ctrl_in_parent, @ctrl_out_child)  = open_binary_pipes
+    (@ctrl_in_child,  @ctrl_out_parent) = open_binary_pipes
+
+    @pid = fork &method(:run_in_child)
+    return unless @pid
+
+    @active = true
+    [in_child, out_child, ctrl_in_child, ctrl_out_child].each(&:close)
+    pid
+  end
+
+  def open_binary_pipes
+    IO.pipe.each do |io|
+      io.set_encoding 'BINARY'
+    end.tap do |pipes|
+      pipes.last.sync = true
+    end
+  end
+
   def run_in_child
     switch_state  :waiting
     [in_parent, out_parent, ctrl_in_parent, ctrl_out_parent].each(&:close)
@@ -93,13 +112,6 @@ class Arsenicum::Core::Worker
       [in_child, out_child, ctrl_in_child, ctrl_out_child].each do |io|
         begin io.close rescue nil end
       end
-    end
-  end
-
-  def active?
-    case state
-      when :waiting, :busy
-        true
     end
   end
 
@@ -178,10 +190,6 @@ class Arsenicum::Core::Worker
 
   def process_name
     "arsenicum[Worker ##{index}] - #{state}"
-  end
-
-  def return_to_broker
-    broker.get_back_worker self
   end
 
   [:debug,  :info,  :warn,  :error, :fatal].each do |level|
