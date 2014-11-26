@@ -46,6 +46,8 @@ class Arsenicum::Core::Worker
   def open_binary_pipes
     IO.pipe.each do |io|
       io.set_encoding 'BINARY'
+    end.tap do |pipes|
+      pipes.last.sync = true
     end
   end
 
