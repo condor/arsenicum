@@ -118,7 +118,7 @@ module Arsenicum
       end
 
       def build
-        klass.new(name, init_parameters.merge(router_class: router_class)).tap do |queue|
+        klass.new(name, init_parameters.merge(worker_count: worker_count, router_class: router_class)).tap do |queue|
           task_configurations.each do |task_config|
             queue.register task_config.build
           end
