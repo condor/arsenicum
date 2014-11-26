@@ -151,7 +151,7 @@ module Arsenicum
       end
 
       def build
-        logger = ::Logger.new(output_stream)
+        logger = ::Logger.new(output_stream.tap{|s|s.sync = true})
         logger.level = ::Logger.const_get log_level.to_s.upcase.to_sym
         logger.formatter = log_format if log_format
         logger
