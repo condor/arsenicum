@@ -56,17 +56,14 @@ class Arsenicum::Core::Worker
 
   def stop
     thread.terminate
-    return if Process.waitpid pid, Process::WNOHANG
+    return unless child_process_alive?
 
     write_message   ctrl_out_parent, COMMAND_STOP
     Process.waitpid pid
   end
 
   def active?
-    case state
-      when :waiting, :busy
-        true
-    end
+    worker_thread_alive? && child_process_alive?
   end
 
   def return_to_broker
@@ -74,6 +71,14 @@ class Arsenicum::Core::Worker
   end
 
   private
+  def worker_thread_alive?
+    thread.alive?
+  end
+
+  def child_process_alive?
+    Process.waitpid pid, Process::WNOHANG
+  end
+
   def run
     (@in_parent, @out_child)            = open_binary_pipes
     (@in_child, @out_parent)            = open_binary_pipes
@@ -246,7 +251,7 @@ class Arsenicum::Core::Worker
             failure_handler.call e
           ensure
             self.task_request = nil
-            return_to_broker
+            worker.return_to_broker
           end
         end
       end
