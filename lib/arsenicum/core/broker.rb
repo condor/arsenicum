@@ -11,7 +11,6 @@ class Arsenicum::Core::Broker
 
   def initialize(options = {})
     @worker_count = (options.delete(:worker_count) || PROCESSOR_COUNT_DEFAULT).to_i
-    @mutex = Mutex.new
     @tasks = {}
     @router = options.delete :router
 
@@ -19,6 +18,8 @@ class Arsenicum::Core::Broker
     formatter  = options[:formatter]   ||  Arsenicum::Formatter.new
     @worker_options = options.delete(:worker_options) || {}
     @worker_options.merge! serializer: serializer,  formatter: formatter
+    @current_worker_index = -1 # because it is incremented whenever used. (primary index should be ZERO)
+    @mutex = Mutex.new
   end
 
   def [](task_id)
@@ -32,8 +33,8 @@ class Arsenicum::Core::Broker
   alias_method :register, :[]=
 
   def run
-    @workers = {}
-    @available_workers = {}
+    @workers = []
+    @available_workers = []
 
     prepare_workers
   end
@@ -56,63 +57,56 @@ class Arsenicum::Core::Broker
   end
 
   def stop
-    workers.values.map(&:stop)
+    workers.each(&:stop)
   end
 
   def remove(worker)
-    mutex.synchronize do
-      workers.delete(worker.pid)
-      available_workers.delete(worker.pid)
-    end
+    available_workers.delete(worker)
+    workers.delete(worker)
   end
 
   def reload
-    workers.values.each(&:stop)
+    stop
 
-    workers.clear
     available_workers.clear
+    workers.clear
 
     prepare_workers
   end
 
   def get_back_worker(worker)
-    mutex.synchronize{
-      if worker.active?
-        available_workers[worker.pid] = worker
-      else
-        next_index = workers.count
-        remove worker
-        worker.stop
-        prepare_worker next_index
-      end
-    }
+    if worker.active?
+      available_workers << worker
+    else
+      remove worker
+      worker.stop
+      prepare_worker
+    end
   end
 
   private
   def prepare_workers
-    @worker_count.times do |i|
-      prepare_worker i
-    end
+    @worker_count.times{prepare_worker}
   end
 
-  def prepare_worker index
-    worker = Arsenicum::Core::Worker.new(self, index, worker_options)
+  def prepare_worker
+    worker = Arsenicum::Core::Worker.new(self, next_worker_index, worker_options)
     stock(worker)
   end
 
+  def next_worker_index
+    mutex.synchronize{
+      @current_worker_index += 1
+    }
+  end
+
   def stock(worker)
-    mutex.synchronize do
-      pid = worker.run
-      workers[pid] = worker
-      available_workers[pid] = worker
-    end
+    workers << worker
+    available_workers << worker
   end
 
   def next_worker
-    mutex.synchronize do
-      (_, worker) = available_workers.shift
-      worker
-    end
+    mutex.synchronize{available_workers.shift}
   end
 
   def serialize(value = {})
