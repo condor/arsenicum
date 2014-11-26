@@ -47,7 +47,7 @@ module Arsenicum
     def before_boot(config);end
 
     def configure_log(config)
-      Arsenicum::Logger.configure config.logger_config
+      Arsenicum::Logger.set_logger config.logger_config.build
     end
 
     def trap_signal
