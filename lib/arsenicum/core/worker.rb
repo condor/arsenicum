@@ -76,7 +76,7 @@ class Arsenicum::Core::Worker
   end
 
   def child_process_alive?
-    Process.waitpid pid, Process::WNOHANG
+    !Process.waitpid(pid, Process::WNOHANG)
   end
 
   def run
