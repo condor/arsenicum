@@ -1,3 +1,5 @@
+require 'celluloid'
+
 module Arsenicum
   autoload  :Configuration,         'arsenicum/configuration'
   autoload  :MisconfigurationError, 'arsenicum/configuration'
