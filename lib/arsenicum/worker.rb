@@ -1,80 +1,38 @@
 require 'weakref'
+require 'celluloid'
 
-class Arsenicum::Core::Worker
-  include Arsenicum::Core::Commands
-  include Arsenicum::Core::IOHelper
+class Arsenicum::Worker
+  include Celluloid
+  finalizer   :stop
+  attr_reader :state, :handlers
 
-  RESULT_SUCCESS  = 0
-  RESULT_FAILURE  = 0x80
-
-  CONTROL_STOP    = 0xFF
-  CONTROL_PING    = 0x30
-
-  attr_reader :pid,
-              :in_parent,       :out_parent,      :in_child,      :out_child,
-              :ctrl_in_parent,  :ctrl_out_parent, :ctrl_in_child, :ctrl_out_child,
-              :work_at,
-              :thread,
-              :active, :broker, :serializer,  :formatter, :index,
-              :state
-  alias_method :active?, :active
-
-  def initialize(broker, index, worker_configuration)
-    @broker     = WeakRef.new broker # avoiding circular references.
-    @index      = index
-    @serializer = worker_configuration[:serializer]
-    @formatter  = worker_configuration[:formatter]
-    @thread     = InvokerThread.new(self)
-    @work_at    = :parent
-    @state      = :parent
-
+  def initialize(queue)
+    @queue    = WeakRef.new queue
+    @handlers = {}
     run
   end
 
-  def ==(another)
-    return false unless another.is_a? ::Arsenicum::Core::Worker
+  def request(task, success_handler, failure_handler)
+    task_data = serialize task
+    out_parent.write task_data
+    rs, = select [in_parent]
+    result = deserialize rs.first.readpartial(10240)
 
-    return another.pid == self.pid
-  end
-
-  def ask(task_id, *parameters)
-    write_message                   out_parent, task_id,  serialize(parameters)
-    loop do
-      rs, = select([in_parent], [], [], 5)
-      break if rs
-      sleep 0.5
+    if result.has_exception?
+      failure_handler.call result.exception, task
+    else
+      success_handler.call task
     end
-
-    result, marshaled_exception = read_message  in_parent
-    return if result == RESULT_SUCCESS
-    raise Marshal.load(marshaled_exception)
-  end
-
-  def ask_async(success_handler, failure_handler, task_id, *parameters)
-    thread.ask success_handler, failure_handler, task_id, *parameters
   end
 
   def stop
-    thread.terminate
     return unless child_process_alive?
 
     write_message   ctrl_out_parent, COMMAND_STOP
     Process.waitpid pid
   end
 
-  def active?
-    worker_thread_alive? && child_process_alive?
-  end
-
-  def return_to_broker
-    broker.get_back_worker self
-  end
-
   private
-  def worker_thread_alive?
-    thread.alive?
-  end
-
   def child_process_alive?
     !Process.waitpid(pid, Process::WNOHANG)
   end
@@ -120,14 +78,9 @@ class Arsenicum::Core::Worker
     end
   end
 
-  def switch_state(state)
-    @state  = state
-    $0      = process_name
-  end
-
   def server_loop
     begin
-      rs, = select [in_child, ctrl_in_child], [], [], 0.5
+      rs, = select [in_child, ctrl_in_child], [], []
       return unless rs
     rescue Interrupt
       switch_state :interrupted
@@ -171,7 +124,6 @@ class Arsenicum::Core::Worker
       case control
         when CONTROL_STOP
           info message: '[Control]Received stop command.'
-          thread.terminate
           switch_state  :stopped
       end
     end
@@ -208,6 +160,10 @@ class Arsenicum::Core::Worker
     SCRIPT
   end
 
+  def switch_state new_state
+    @state = new_state
+  end
+
   def log_message_for(message)
     "[Worker ##{object_id}]#{message}"
   end
@@ -217,55 +173,6 @@ class Arsenicum::Core::Worker
       Signal.trap sig do
         exit 1
       end
-    end
-  end
-
-  class InvokerThread < Thread
-    attr_accessor :task_request
-    private       :task_request,  :task_request=
-
-    def ask(success_handler, failure_handler, task_id, *parameters)
-      self.task_request = [success_handler, failure_handler, task_id, parameters]
-    end
-
-    def initialize(worker)
-      super do
-        loop do
-          begin
-            next sleep(0.5) unless task_request
-          rescue Interrupt
-            break
-          end
-          (success_handler, failure_handler, task_id, parameter) = task_request
-
-          begin
-            worker.ask task_id, *parameter
-            info worker, message: "Completed processing: #{task_id}"
-            success_handler.call
-          rescue Interrupt => e
-            error worker, exception: e
-            failure_handler.call e
-            break
-          rescue Exception => e
-            error worker, exception: e
-            failure_handler.call e
-          ensure
-            self.task_request = nil
-            worker.return_to_broker
-          end
-        end
-      end
-    end
-
-    [:debug,  :info,  :warn,  :error, :fatal].each do |level|
-      eval <<-SCRIPT, binding, __FILE__, __LINE__ + 1
-        def #{level}(worker, message: nil, exception: nil)
-          Arsenicum::Logger.#{level} do
-            message = "[Worker #\#{worker.index}][\#{worker.work_at}][thread]\#{message}" if message
-            [message, exception]
-          end
-        end
-      SCRIPT
     end
   end
 end

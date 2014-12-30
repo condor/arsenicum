@@ -1,15 +1,12 @@
 require 'weakref'
 
 class Arsenicum::Queue
+  include Celluloid
+  attr_reader :worker_pool, :name
 
-  attr_reader   :name,  :worker_count,  :router
-  attr_reader   :broker
-
-  def initialize(name, options)
-    @name         = name
-    @worker_count = options.delete(:worker_count)
-    @router       = build_router options.delete(:router_class)
-    @broker       = Arsenicum::Core::Broker.new worker_count: worker_count, router: router
+  def initialize(configuration)
+    @name         = configuration.name
+    @worker_pool  = Arsenicum::Worker.pool(size: configuration.worker.count, args: self)
   end
 
   def start
@@ -17,22 +14,11 @@ class Arsenicum::Queue
     broker.run
     Arsenicum::Logger.info{"[queue]Queue #{name} start-up completed"}
 
-    loop do
-      begin
-        (message, original_message) = pick
-      rescue => e
-        handle_failure e, original_message
-        next
-      end
+    boot
+  end
 
-      unless message
-        sleep(0.5)
-        next
-      end
-
-      Arsenicum::Logger.info{"Queue picked. message: #{message.inspect}"}
-      broker.delegate message, -> { handle_success(original_message) }, -> e { handle_failure(e, original_message) }
-    end
+  def feed(task)
+    worker_pool.async.request task, method(:handle_success), method(:handle_failure)
   end
 
   def stop
@@ -49,10 +35,6 @@ class Arsenicum::Queue
 
   def handle_failure(e, original_message)
     #TODO implement correctly in your derived classes.
-  end
-
-  def start_async
-    Thread.new{start}
   end
 
   private
