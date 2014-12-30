@@ -1,4 +1,5 @@
 require 'celluloid'
+require 'msgpack'
 
 module Arsenicum
   autoload  :Configuration,         'arsenicum/configuration'
