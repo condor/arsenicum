@@ -1,9 +1,5 @@
 module Arsenicum
   module Util
-    def self.included(base)
-      mod = self
-      base.module_eval{extend mod}
-    end
 
     def normalize_hash(values)
       values.inject({}) do |h, kv|
@@ -34,11 +30,13 @@ module Arsenicum
     end
 
     def constantize(klass, inside: Kernel)
-      if klass.to_s.start_with?('::')
-        klass = klass.to_s[2..-1].to_sym
+      class_name = klass.to_s
+      if class_name.start_with?('::')
+        class_name = class_name[2..-1]
         inside = Kernel
       end
-      klass.to_s.split('::').inject(inside) do |parent, const|
+
+      class_name.split('::').inject(inside) do |parent, const|
         parent.const_get const.to_sym
       end
     end

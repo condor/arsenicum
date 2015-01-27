@@ -37,11 +37,15 @@ class Arsenicum::CLI
     end
 
     opt.on '-d', '--daemonize' do
-      configuration.daemonize
+      configuration.daemonized = true
+    end
+
+    opt.on '-l', '--log-file=PATH' do |v|
+      configuration.
     end
 
     opt.on '--stdout=PATH' do |v|
-      configuration.stdout    v
+      configuration.stdout = v
     end
 
     opt.on '--stderr=PATH' do |v|

@@ -1,0 +1,2 @@
+class Arsenicum::Client
+end
